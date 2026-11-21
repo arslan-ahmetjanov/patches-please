@@ -1,0 +1,39 @@
+# Образы и кеши
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Git и служебные файлы репозитория
+.git/
+.gitignore
+.github/
+AGENTS.md
+specs/
+docs/
+
+# Переменные окружения и ключи: в образ не попадают
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Локальные данные и артефакты прогонов
+data/
+reports/
+artifacts/
+*.db
+*.sqlite3
+
+# IDE и ОС
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

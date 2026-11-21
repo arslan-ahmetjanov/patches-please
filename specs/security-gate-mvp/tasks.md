@@ -4,9 +4,9 @@
 
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
-| T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `app/main.py`, `Makefile`, `.env.example` | Compose с postgres, redis, api, worker; healthcheck; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
+| T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `app/main.py`, `app/worker/main.py`, `Makefile`, `.env.example`, `pyproject.toml`, `contracts/openapi.yaml` | Compose с postgres, redis, api, worker; healthcheck; каркас `pyproject.toml` с pytest, ruff, mypy; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
 | T-002 | NFR-005 | `app/db.py`, `alembic.ini`, `migrations/`, `README.md` | Подключение к PostgreSQL, Alembic, первая миграция `users` и `sessions` | `uv run alembic upgrade head`, перезапуск стека | миграция применяется, после рестарта данные на месте |
-| T-003 | NFR-001 | `pyproject.toml`, `tests/conftest.py`, `.github/workflows/ci.yml` | Каркас pytest, ruff, mypy; CI на push и PR | `uv run pytest`, `uv run ruff check .` | CI зелёный на пустом каркасе |
+| T-003 | NFR-001 | `tests/conftest.py`, `.github/workflows/ci.yml` | Общие фикстуры pytest, CI на push и PR | `uv run pytest`, `uv run ruff check .` | CI зелёный на каркасе T-001 |
 | T-004 | FR-009 | `app/auth/router.py`, `app/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
 | T-005 | FR-017 | `app/projects/router.py`, `app/projects/models.py`, `templates/projects.html`, `tests/test_projects.py` | Модель проекта, список и создание, изоляция по членству | `uv run pytest tests/test_projects.py` | пользователь проекта А не видит проект Б |
 | T-006 | FR-009 | `app/tokens/router.py`, `app/tokens/service.py`, `tests/test_tokens.py` | Токен проекта: создание, показ один раз, хеш в БД, отзыв | `uv run pytest tests/test_tokens.py` | повторно токен не отдаётся, отозванный не проходит |
@@ -36,7 +36,7 @@
 | T-030 | NFR-002 | `scripts/measure_scan.py`, `docs/measurements.md` | Замер прогона на репозитории до 100 тыс. строк, три повтора | `uv run python scripts/measure_scan.py` | максимум ≤ 10 минут, цифры записаны |
 | T-031 | CON-001 | `docs/licenses.md`, `README.md` | Список лицензий сканеров и зависимостей, проверка разрешительности | ревью таблицы лицензий | все лицензии разрешительные, таблица в репозитории |
 | T-032 | CON-003 | `demo/README.md`, `scripts/seed_demo.py`, `docs/demo.md` | Демо-репозиторий с внедрёнными уязвимостями и секретами, без данных работодателя | прогон на демо | находятся все три класса находок, запрещённых данных нет |
-| T-033 | NFR-006, CON-004 | `docs/runbook.md`, `README.md` | Инструкция развёртывания с нуля на русском, хронометраж | чистая машина, замер по инструкции | развёртывание ≤ 30 минут |
+| T-033 | NFR-006, CON-004 | `docs/runbook.md`, `README.md` | Инструкция развёртывания с нуля на русском, хронометраж; предусловия: установка `uv` и запуск Docker Desktop | чистая машина, замер по инструкции | развёртывание ≤ 30 минут |
 
 ## Трассировка
 

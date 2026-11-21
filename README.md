@@ -14,16 +14,41 @@
 
 ## Статус
 
-Спецификация V1 — на согласовании.
+Спецификация V1 зафиксирована. Реализация идёт по этапам `specs/security-gate-mvp/tasks.md`, сейчас выполнен этап 1 — скелет проекта (T-001).
+
+## Быстрый старт
+
+Нужны Docker Compose и [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync                        # зависимости для локальных тестов и линта
+cp .env.example .env           # параметры локального стенда
+docker compose up -d --build   # postgres, redis, api, worker
+curl http://localhost:8000/health
+```
+
+Ожидаемый ответ: `{"status":"ok"}`. Остановка стека — `docker compose down`.
+Подробный runbook развёртывания с нуля появится в задаче T-033.
+
+## Разработка
+
+```bash
+uv run pytest -m "not integration"
+uv run ruff check .
+uv run mypy app
+```
 
 ## Структура
 
 ```
+app/                      # api, worker, scanners, normalize, policy, reports, web
+contracts/openapi.yaml    # контракт REST API
 specs/
   security-gate-mvp/
     spec.md     # что и зачем, сценарии, требования, критерии приёмки
     plan.md     # архитектура, стек, данные, контракты, риски
     tasks.md    # задачи с трассировкой к требованиям
+tests/                    # pytest
 ```
 
 Реализация начинается с `tasks.md`: одна задача — один коммит, проверка указана в задаче.

@@ -1,0 +1,34 @@
+# Контракт REST API Security Gate.
+# На этапе 1 описан только служебный эндпоинт; полный контракт собирается в T-007.
+openapi: 3.1.0
+info:
+  title: Security Gate
+  description: Автоматизированный контроль безопасности разработки в CI/CD
+  version: 0.1.0
+paths:
+  /health:
+    get:
+      tags:
+        - служебные
+      summary: Проверка живости сервиса
+      description: "Отвечает 200, пока процесс принимает запросы.\n\nИспользуется healthcheck-ом Docker Compose и внешним мониторингом."
+      operationId: health_health_get
+      responses:
+        "200":
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      title: HealthResponse
+      description: "Ответ healthcheck-а: сервис принимает запросы."
+      properties:
+        status:
+          type: string
+          const: ok
+          default: ok
+          title: Status

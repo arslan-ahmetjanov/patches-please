@@ -1,0 +1,97 @@
+name: security-gate
+
+# Общие переменные для api и worker. Значения по умолчанию — только для локального
+# стенда; для демо-стенда они задаются в .env (см. .env.example).
+x-app-environment: &app-environment
+  APP_ENV: ${APP_ENV:-local}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://security_gate:security_gate_local@postgres:5432/security_gate}
+  REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-security_gate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-security_gate_local}
+      POSTGRES_DB: ${POSTGRES_DB:-security_gate}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-security_gate} -d ${POSTGRES_DB:-security_gate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: security-gate-api:local
+    restart: unless-stopped
+    init: true
+    environment: *app-environment
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: security-gate-worker:local
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 30s
+    command: ["python", "-m", "app.worker.main"]
+    environment: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      # Воркер считается живым, пока он зарегистрирован в Redis как обработчик очереди.
+      test:
+        - CMD
+        - python
+        - -c
+        - import os, sys; from redis import Redis; from rq import Queue, Worker; from app.worker.main import QUEUE_NAME; c = Redis.from_url(os.environ["REDIS_URL"]); sys.exit(0 if Worker.all(queue=Queue(QUEUE_NAME, connection=c), connection=c) else 1)
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pgdata:
+  redisdata:
