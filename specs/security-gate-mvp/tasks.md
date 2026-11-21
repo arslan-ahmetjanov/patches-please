@@ -1,0 +1,93 @@
+# Задачи: Security Gate — V1
+
+Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения.
+
+| ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
+| --- | --- | --- | --- | --- | --- |
+| T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `app/main.py`, `Makefile`, `.env.example` | Compose с postgres, redis, api, worker; healthcheck; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
+| T-002 | NFR-005 | `app/db.py`, `alembic.ini`, `migrations/`, `README.md` | Подключение к PostgreSQL, Alembic, первая миграция `users` и `sessions` | `uv run alembic upgrade head`, перезапуск стека | миграция применяется, после рестарта данные на месте |
+| T-003 | NFR-001 | `pyproject.toml`, `tests/conftest.py`, `.github/workflows/ci.yml` | Каркас pytest, ruff, mypy; CI на push и PR | `uv run pytest`, `uv run ruff check .` | CI зелёный на пустом каркасе |
+| T-004 | FR-009 | `app/auth/router.py`, `app/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
+| T-005 | FR-017 | `app/projects/router.py`, `app/projects/models.py`, `templates/projects.html`, `tests/test_projects.py` | Модель проекта, список и создание, изоляция по членству | `uv run pytest tests/test_projects.py` | пользователь проекта А не видит проект Б |
+| T-006 | FR-009 | `app/tokens/router.py`, `app/tokens/service.py`, `tests/test_tokens.py` | Токен проекта: создание, показ один раз, хеш в БД, отзыв | `uv run pytest tests/test_tokens.py` | повторно токен не отдаётся, отозванный не проходит |
+| T-007 | FR-009 | `contracts/openapi.yaml`, `app/api.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок | валидация схемы, сравнение с живым `/openapi.json` | контракт совпадает с реализацией |
+| T-008 | FR-001, FR-007, FR-019 | `app/scans/router.py`, `app/scans/models.py`, `app/scans/queue.py`, `tests/test_scans.py` | `POST /scans` с токеном и `provider`, запись прогона, очередь, поллинг статуса | `uv run pytest tests/test_scans.py` | два провайдера создают прогоны одинаковой структуры |
+| T-009 | FR-016 | `app/scans/service.py`, `tests/test_status.py` | Машина состояний прогона: queued → running → done/error | `uv run pytest tests/test_status.py` | недопустимые переходы отклоняются |
+| T-010 | NFR-005 | `app/worker/main.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
+| T-011 | FR-002 | `app/scanners/base.py`, `app/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
+| T-012 | FR-003 | `app/normalize/model.py`, `app/normalize/sarif.py`, `app/normalize/fingerprint.py`, `tests/fixtures/*.sarif` | Нормализация SARIF, fingerprint, дедупликация внутри прогона | `uv run pytest tests/test_normalize.py` | все обязательные поля заполнены, дубли схлопнуты |
+| T-013 | FR-002, NFR-003 | `Dockerfile.worker`, `app/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на демо-репозитории | три сканера дают SARIF без доступа в интернет |
+| T-014 | FR-006, FR-016 | `app/policy/baseline.py`, `app/policy/classify.py`, `tests/test_baseline.py` | Установка baseline, сравнение, метки `new`/`existing`/`fixed` | `uv run pytest tests/test_baseline.py` | сценарий S-003 проходит на данных |
+| T-015 | FR-011, FR-012 | `app/policy/exceptions.py`, `templates/exceptions.html`, `tests/test_exceptions.py` | Исключения с причиной и сроком, автоповтор после истечения, аудит | `uv run pytest tests/test_exceptions.py` | S-005 проходит, истёкшее исключение снова влияет на вердикт |
+| T-016 | FR-015 | `app/metrics/service.py`, `tests/test_metrics.py` | Расчёт метрик прогона: длительность, находки, новые/исправленные, доля исключённых | `uv run pytest tests/test_metrics.py` | все пять метрик считаются и сохраняются |
+| T-017 | FR-004, FR-014 | `app/policy/verdict.py`, `app/policy/router.py`, `tests/test_policy.py` | Пороги по severity и вердикт `pass`/`fail` для проекта | `uv run pytest tests/test_policy.py` | два проекта с разными порогами дают разные вердикты |
+| T-018 | FR-005 | `app/policy/verdict.py`, `tests/test_blocking.py` | Блокировка при новой находке блокирующего уровня | `uv run pytest tests/test_blocking.py` | новая `critical` при политике `critical` даёт `fail` |
+| T-019 | FR-013 | `app/policy/degraded.py`, `tests/test_degraded.py` | Пометка `degraded`, режимы fail-open и fail-closed | `uv run pytest tests/test_degraded.py` | упавший сканер не блокирует при fail-open и блокирует при fail-closed |
+| T-020 | FR-008, FR-015 | `app/reports/json_report.py`, `app/reports/html_report.py`, `templates/report.html`, `tests/test_reports.py` | Отчёты JSON и HTML по прогону, артефакты | `uv run pytest tests/test_reports.py` | JSON валиден по схеме, HTML содержит все находки |
+| T-021 | NFR-004 | `app/normalize/mask.py`, `tests/test_masking.py` | Маскирование секретов в находках, логах и отчётах | `uv run pytest tests/test_masking.py` | тестовый секрет не встречается в открытом виде ни в одном выходе |
+| T-022 | FR-010, CON-004 | `templates/project.html`, `app/web/router.py`, `tests/test_web_project.py` | Страница проекта: последние прогоны, тренд, топ-5 правил, русские подписи | `uv run pytest tests/test_web_project.py` | S-006 проходит, пустых состояний при наличии данных нет |
+| T-023 | FR-003, FR-018 | `templates/scan.html`, `tests/test_web_scan.py` | Страница прогона: находки с фильтрами по severity и состоянию, проверка прав | `uv run pytest tests/test_web_scan.py` | чужой проект отдаёт 403, фильтры работают |
+| T-024 | FR-014, FR-011 | `templates/settings.html`, `templates/policy_form.html`, `tests/test_web_settings.py` | Формы политики и исключений с валидацией полей | `uv run pytest tests/test_web_settings.py` | форма без причины не сохраняется |
+| T-025 | FR-018 | `app/auth/permissions.py`, `tests/test_permissions.py` | Единая проверка прав на проект для API и страниц | `uv run pytest tests/test_permissions.py` | все точки доступа покрыты, 403 без утечки данных |
+| T-026 | FR-019, FR-020, FR-021 | `.github/actions/security-gate/action.yml`, `.github/workflows/demo-scan.yml`, `docs/ci-github.md` | Композитный action: старт, поллинг, код выхода; демо-воркфлоу | реальный прогон в GitHub | job падает при `fail` и проходит при `pass` |
+| T-027 | FR-019, FR-020, FR-021 | `ci/gitlab/security-gate.yml`, `.gitlab-ci.yml`, `docs/ci-gitlab.md` | Шаблон job для GitLab, инструкция, локальная проверка | `gitlab-ci-local` | пайплайн валиден и проходит локально |
+| T-028 | FR-019 | `tests/test_parity.py` | Один коммит через два провайдера даёт одинаковый вердикт и набор проверок | `uv run pytest tests/test_parity.py` | вердикты и число находок совпадают |
+| T-029 | NFR-001 | `tests/load/k6.js`, `docs/measurements.md` | Нагрузочный замер API, фиксация p95 | `k6 run tests/load/k6.js` | p95 ≤ 300 мс при 20 RPS, результат записан |
+| T-030 | NFR-002 | `scripts/measure_scan.py`, `docs/measurements.md` | Замер прогона на репозитории до 100 тыс. строк, три повтора | `uv run python scripts/measure_scan.py` | максимум ≤ 10 минут, цифры записаны |
+| T-031 | CON-001 | `docs/licenses.md`, `README.md` | Список лицензий сканеров и зависимостей, проверка разрешительности | ревью таблицы лицензий | все лицензии разрешительные, таблица в репозитории |
+| T-032 | CON-003 | `demo/README.md`, `scripts/seed_demo.py`, `docs/demo.md` | Демо-репозиторий с внедрёнными уязвимостями и секретами, без данных работодателя | прогон на демо | находятся все три класса находок, запрещённых данных нет |
+| T-033 | NFR-006, CON-004 | `docs/runbook.md`, `README.md` | Инструкция развёртывания с нуля на русском, хронометраж | чистая машина, замер по инструкции | развёртывание ≤ 30 минут |
+
+## Трассировка
+
+| Требование | Задачи | Тесты |
+| --- | --- | --- |
+| FR-001 | T-008 | `tests/test_scans.py` |
+| FR-002 | T-011, T-013 | `tests/test_runner.py`, `docs/scanners.md` |
+| FR-003 | T-012, T-023 | `tests/test_normalize.py`, `tests/test_web_scan.py` |
+| FR-004 | T-017 | `tests/test_policy.py` |
+| FR-005 | T-018 | `tests/test_blocking.py` |
+| FR-006 | T-014 | `tests/test_baseline.py` |
+| FR-007 | T-008 | `tests/test_scans.py` |
+| FR-008 | T-020 | `tests/test_reports.py` |
+| FR-009 | T-004, T-006, T-007, T-008 | `tests/test_auth.py`, `tests/test_tokens.py`, валидация контракта |
+| FR-010 | T-022 | `tests/test_web_project.py` |
+| FR-011 | T-015, T-024 | `tests/test_exceptions.py`, `tests/test_web_settings.py` |
+| FR-012 | T-015 | `tests/test_exceptions.py` |
+| FR-013 | T-019 | `tests/test_degraded.py` |
+| FR-014 | T-017, T-024 | `tests/test_policy.py`, `tests/test_web_settings.py` |
+| FR-015 | T-016, T-020 | `tests/test_metrics.py`, `tests/test_reports.py` |
+| FR-016 | T-009, T-014 | `tests/test_status.py`, `tests/test_baseline.py` |
+| FR-017 | T-005 | `tests/test_projects.py` |
+| FR-018 | T-023, T-025 | `tests/test_permissions.py`, `tests/test_web_scan.py` |
+| FR-019 | T-008, T-026, T-027, T-028 | `tests/test_scans.py`, `tests/test_parity.py`, демо-пайплайны |
+| FR-020 | T-026, T-027 | GitHub demo-воркфлоу, `gitlab-ci-local` |
+| FR-021 | T-026, T-027 | `docs/ci-github.md`, `docs/ci-gitlab.md` |
+| NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
+| NFR-002 | T-030 | `scripts/measure_scan.py` |
+| NFR-003 | T-013 | офлайн-прогон на демо |
+| NFR-004 | T-021 | `tests/test_masking.py` |
+| NFR-005 | T-002, T-010 | `tests/test_worker_resilience.py` |
+| NFR-006 | T-033 | `docs/runbook.md` |
+| CON-001 | T-031 | `docs/licenses.md` |
+| CON-002 | T-001 | `docker compose up` |
+| CON-003 | T-032 | прогон на демо, ревью данных |
+| CON-004 | T-022, T-033 | страницы и документация на русском |
+| CON-005 | T-001 | запуск на целевой машине |
+
+## Порядок и сроки
+
+| Этап | Задачи | Оценка |
+| --- | --- | --- |
+| 1. Скелет | T-001…T-003 | 3 дня |
+| 2. Проекты и доступ | T-004…T-007 | 4 дня |
+| 3. Прогон и очередь | T-008…T-010 | 4 дня |
+| 4. Сканеры и нормализация | T-011…T-013 | 1 неделя |
+| 5. Baseline и исключения | T-014, T-015 | 3 дня |
+| 6. Метрики, политика, вердикт | T-016…T-019 | 4 дня |
+| 7. Отчёты | T-020, T-021 | 3 дня |
+| 8. Интерфейс | T-022…T-025 | 5 дней |
+| 9. CI-интеграции | T-026…T-028 | 4 дня |
+| 10. Замеры и документация | T-029…T-033 | 4 дня |
+
+Итого около 8 недель работы плюс две недели буфера на текст ВКР и правки. Защита в феврале — запас есть.
