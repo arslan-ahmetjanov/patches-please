@@ -3,6 +3,7 @@
 Точка входа процесса `api`: служебные эндпоинты, REST API и веб-интерфейс.
 """
 
+from functools import partial
 from typing import Literal
 
 from fastapi import FastAPI, Request, status
@@ -10,6 +11,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
+from app.api import build_openapi_schema
 from app.auth.dependencies import LoginRequiredError
 from app.auth.router import api_router as auth_api_router
 from app.auth.router import html_router as auth_html_router
@@ -22,6 +24,10 @@ app = FastAPI(
     description="Автоматизированный контроль безопасности разработки в CI/CD",
     version="0.1.0",
 )
+
+# Схема собирается в app/api.py: там же схемы безопасности и точная форма
+# ValidationError, которую не вывести из обработчика 422 автоматически.
+app.openapi = partial(build_openapi_schema, app)  # type: ignore[method-assign]
 
 app.include_router(auth_api_router)
 app.include_router(auth_html_router)

@@ -1,374 +1,397 @@
 # Контракт REST API Security Gate.
-# На этапе 2 описаны служебный эндпоинт, вход/выход (T-004), проекты (T-005)
-# и токены проектов (T-006);
-# полный контракт собирается в T-007.
+# Сгенерирован из app.openapi(); вручную не править.
+# Перегенерация: uv run python -m scripts.export_openapi
+# Сверка с приложением: uv run pytest tests/test_contract.py
 openapi: 3.1.0
 info:
   title: Security Gate
   description: Автоматизированный контроль безопасности разработки в CI/CD
   version: 0.1.0
 paths:
-  /health:
-    get:
-      tags:
-        - служебные
-      summary: Проверка живости сервиса
-      description: "Отвечает 200, пока процесс принимает запросы.\n\nИспользуется healthcheck-ом Docker Compose и внешним мониторингом."
-      operationId: health_health_get
-      responses:
-        "200":
-          description: Successful Response
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/HealthResponse"
   /api/v1/auth/login:
     post:
       tags:
-        - аутентификация
+      - аутентификация
       summary: Вход в интерфейс
-      description: "Проверяет email и пароль, создаёт сессию браузера и ставит cookie `security_gate_session`.\n\nНеверный пароль и неизвестный email дают одинаковый ответ 401: наличие учётной записи не раскрывается."
+      description: 'Проверяет email и пароль, создаёт сессию браузера и ставит cookie `security_gate_session`.
+
+
+        Неверный пароль и неизвестный email дают одинаковый ответ 401: наличие учётной записи не раскрывается.'
       operationId: api_login_api_v1_auth_login_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/LoginRequest"
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
       responses:
-        "200":
-          description: "Сессия создана, в Set-Cookie — токен сессии."
+        '200':
+          description: Сессия создана, в Set-Cookie — токен сессии.
           headers:
             Set-Cookie:
-              description: "Cookie `security_gate_session`: HttpOnly, SameSite=Lax, Path=/, срок жизни 7 дней."
+              description: 'Cookie `security_gate_session`: HttpOnly, SameSite=Lax, Path=/, срок жизни 7 дней.'
               schema:
                 type: string
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserResponse"
-        "401":
+                $ref: '#/components/schemas/UserResponse'
+        '401':
           description: Неверный email или пароль.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/auth/logout:
     post:
       tags:
-        - аутентификация
+      - аутентификация
       summary: Выход из интерфейса
-      description: "Удаляет строку `sessions` по хешу токена из cookie и очищает cookie.\n\nБез активной сессии отвечает 204: повторный вызов безопасен."
+      description: 'Удаляет строку `sessions` по хешу токена из cookie и очищает cookie.
+
+
+        Без активной сессии отвечает 204: повторный вызов безопасен.'
       operationId: api_logout_api_v1_auth_logout_post
       responses:
-        "204":
-          description: "Сессия закрыта, cookie очищена."
+        '204':
+          description: Сессия закрыта, cookie очищена.
           headers:
             Set-Cookie:
-              description: "Пустое значение `security_gate_session` с истёкшим сроком."
+              description: Пустое значение `security_gate_session` с истёкшим сроком.
               schema:
                 type: string
   /api/v1/projects:
     get:
       tags:
-        - проекты
+      - проекты
       summary: Проекты текущего пользователя
-      description: "Только проекты, где текущий пользователь участник.\n\nОтбор идёт по строкам `project_members`: чужие проекты в ответ не попадают. Порядок — от новых к старым."
+      description: 'Только проекты, где текущий пользователь участник.
+
+
+        Отбор идёт по строкам `project_members`: чужие проекты в ответ не попадают. Порядок — от новых к старым.'
       operationId: api_list_projects_api_v1_projects_get
       responses:
-        "200":
+        '200':
           description: Проекты, где пользователь участник; пустой массив — если их нет.
           content:
             application/json:
               schema:
-                type: array
                 items:
-                  $ref: "#/components/schemas/ProjectResponse"
-        "401":
+                  $ref: '#/components/schemas/ProjectResponse'
+                type: array
+                title: Response Api List Projects Api V1 Projects Get
+        '401':
           description: Нет действующей сессии.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
     post:
       tags:
-        - проекты
+      - проекты
       summary: Создать проект
-      description: "Создаёт проект и членство создателя с ролью `owner` одной транзакцией.\n\nSlug уникален: занятый slug даёт 409, проект при этом не создаётся. Создавать проекты может любой аутентифицированный пользователь."
+      description: 'Создаёт проект и членство создателя с ролью `owner` одной транзакцией.
+
+
+        Slug уникален: занятый slug даёт 409, проект при этом не создаётся. Создавать проекты может любой аутентифицированный пользователь.'
       operationId: api_create_project_api_v1_projects_post
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ProjectCreate"
+              $ref: '#/components/schemas/ProjectCreate'
+        required: true
       responses:
-        "201":
+        '201':
           description: Проект создан, создатель — участник с ролью `owner`.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ProjectResponse"
-        "401":
+                $ref: '#/components/schemas/ProjectResponse'
+        '401':
           description: Нет действующей сессии.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "409":
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
           description: Проект с таким slug уже существует.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - cookieAuth: []
   /api/v1/projects/{project_id}/tokens:
     get:
       tags:
-        - токены
+      - токены
       summary: Токены проекта
-      description: "Метаданные токенов проекта без открытых значений: открытое значение показывается только в ответе на создание.\n\nПорядок — от новых к старым, при равенстве времени — по названию. Список доступен участнику проекта; посторонний получает 404, чтобы существование чужого проекта не раскрывалось."
+      description: 'Метаданные токенов проекта без открытых значений: открытое значение показывается только в ответе на создание.
+
+
+        Порядок — от новых к старым, при равенстве времени — по названию. Список доступен участнику проекта; посторонний получает 404, чтобы существование чужого проекта не раскрывалось.'
       operationId: api_list_tokens_api_v1_projects__project_id__tokens_get
       parameters:
-        - name: project_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-            title: Project Id
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
       responses:
-        "200":
+        '200':
           description: Токены проекта; пустой массив — если их нет.
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/TokenListItem"
-        "401":
+                  $ref: '#/components/schemas/TokenListItem'
+                title: Response Api List Tokens Api V1 Projects  Project Id  Tokens Get
+        '401':
           description: Нет действующей сессии.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Проект не найден или пользователь не его участник.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - cookieAuth: []
     post:
       tags:
-        - токены
+      - токены
       summary: Создать токен проекта
-      description: "Создаёт токен для доступа из CI и возвращает открытое значение ровно один раз — в ответе 201.\n\nВ базе хранится только SHA-256 токена. Создавать токены может только владелец проекта (`owner`); участник (`member`) получает 403, посторонний — 404."
+      description: 'Создаёт токен для доступа из CI и возвращает открытое значение ровно один раз — в ответе 201.
+
+
+        В базе хранится только SHA-256 токена. Создавать токены может только владелец проекта (`owner`); участник (`member`) получает 403, посторонний — 404.'
       operationId: api_create_token_api_v1_projects__project_id__tokens_post
       parameters:
-        - name: project_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-            title: Project Id
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/TokenCreate"
+              $ref: '#/components/schemas/TokenCreate'
       responses:
-        "201":
-          description: "Токен создан. Открытое значение `token` больше не отдаётся ни одним методом."
+        '201':
+          description: Токен создан. Открытое значение `token` больше не отдаётся ни одним методом.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TokenResponse"
-        "401":
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
           description: Нет действующей сессии.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
           description: Пользователь участник проекта, но не его владелец.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Проект не найден или пользователь не его участник.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - cookieAuth: []
   /api/v1/projects/{project_id}/tokens/{token_id}:
     delete:
       tags:
-        - токены
+      - токены
       summary: Отозвать токен проекта
-      description: "Помечает токен недействительным: заполняет `revoked_at`, строка остаётся в истории. Отозванный токен не проходит проверку.\n\nПовторный отзыв тоже отвечает 204. Отзывать токены может только владелец проекта; токен другого или несуществующего проекта — 404."
+      description: 'Помечает токен недействительным: заполняет `revoked_at`, строка остаётся в истории. Отозванный токен не проходит проверку.
+
+
+        Повторный отзыв тоже отвечает 204. Отзывать токены может только владелец проекта; токен другого или несуществующего проекта — 404.'
       operationId: api_revoke_token_api_v1_projects__project_id__tokens__token_id__delete
       parameters:
-        - name: project_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-            title: Project Id
-        - name: token_id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-            title: Token Id
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+      - name: token_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Token Id
       responses:
-        "204":
+        '204':
           description: Токен отозван (в том числе повторно).
-        "401":
+        '401':
           description: Нет действующей сессии.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "403":
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
           description: Пользователь участник проекта, но не его владелец.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
           description: Проект или токен этого проекта не найден.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "422":
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
           description: Validation Error
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HTTPValidationError"
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - cookieAuth: []
+  /health:
+    get:
+      tags:
+      - служебные
+      summary: Проверка живости сервиса
+      description: 'Отвечает 200, пока процесс принимает запросы.
+
+
+        Используется healthcheck-ом Docker Compose и внешним мониторингом.'
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
 components:
   schemas:
-    HealthResponse:
-      type: object
-      title: HealthResponse
-      description: "Ответ healthcheck-а: сервис принимает запросы."
-      properties:
-        status:
-          type: string
-          const: ok
-          default: ok
-          title: Status
-    LoginRequest:
-      type: object
-      title: LoginRequest
-      description: "Учётные данные для входа в интерфейс."
-      properties:
-        email:
-          type: string
-          minLength: 1
-          maxLength: 320
-          title: Email
-        password:
-          type: string
-          minLength: 1
-          maxLength: 1024
-          title: Password
-      required:
-        - email
-        - password
-    UserResponse:
-      type: object
-      title: UserResponse
-      description: "Пользователь, от имени которого открыта сессия."
-      properties:
-        id:
-          type: string
-          format: uuid
-          title: Id
-        email:
-          type: string
-          title: Email
-        role:
-          type: string
-          title: Role
-      required:
-        - id
-        - email
-        - role
     ErrorResponse:
-      type: object
-      title: ErrorResponse
-      description: "Ошибка запроса в едином формате."
       properties:
         detail:
           type: string
           title: Detail
-      required:
-        - detail
-    ProjectCreate:
       type: object
-      title: ProjectCreate
-      description: "Данные создания проекта. Slug вводится вручную, repo_url необязателен."
+      required:
+      - detail
+      title: ErrorResponse
+      description: Ошибка запроса в едином формате.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          const: ok
+          title: Status
+          default: ok
+      type: object
+      title: HealthResponse
+      description: 'Ответ healthcheck-а: сервис принимает запросы.'
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 320
+          minLength: 1
+          title: Email
+        password:
+          type: string
+          maxLength: 1024
+          minLength: 1
+          title: Password
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+      description: Учётные данные для входа в интерфейс.
+    ProjectCreate:
       properties:
         name:
           type: string
-          minLength: 1
           maxLength: 200
+          minLength: 1
           title: Name
         slug:
           type: string
-          minLength: 2
           maxLength: 100
-          pattern: "^[a-z0-9][a-z0-9-]{1,99}$"
+          minLength: 2
+          pattern: ^[a-z0-9][a-z0-9-]{1,99}$
           title: Slug
         repo_url:
           anyOf:
-            - type: string
-              maxLength: 2048
-            - type: "null"
+          - type: string
+            maxLength: 2048
+          - type: 'null'
           title: Repo Url
         default_branch:
           type: string
-          minLength: 1
           maxLength: 255
-          default: main
+          minLength: 1
           title: Default Branch
-      required:
-        - name
-        - slug
-    ProjectResponse:
+          default: main
       type: object
-      title: ProjectResponse
-      description: "Проект в ответе API."
+      required:
+      - name
+      - slug
+      title: ProjectCreate
+      description: Данные создания проекта. Slug вводится вручную, repo_url необязателен.
+    ProjectResponse:
       properties:
         id:
           type: string
@@ -382,8 +405,8 @@ components:
           title: Slug
         repo_url:
           anyOf:
-            - type: string
-            - type: "null"
+          - type: string
+          - type: 'null'
           title: Repo Url
         default_branch:
           type: string
@@ -392,29 +415,63 @@ components:
           type: string
           format: date-time
           title: Created At
-      required:
-        - id
-        - name
-        - slug
-        - repo_url
-        - default_branch
-        - created_at
-    TokenCreate:
       type: object
-      title: TokenCreate
-      description: "Название токена: по нему владелец отличает токены в списке."
+      required:
+      - id
+      - name
+      - slug
+      - repo_url
+      - default_branch
+      - created_at
+      title: ProjectResponse
+      description: Проект в ответе API.
+    TokenCreate:
       properties:
         name:
           type: string
-          minLength: 1
           maxLength: 100
+          minLength: 1
           title: Name
-      required:
-        - name
-    TokenResponse:
       type: object
-      title: TokenResponse
-      description: "Созданный токен. `token` — открытое значение, единственный раз."
+      required:
+      - name
+      title: TokenCreate
+      description: 'Название токена: по нему владелец отличает токены в списке.'
+    TokenListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        last_used_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Used At
+        revoked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Revoked At
+      type: object
+      required:
+      - id
+      - name
+      - created_at
+      - last_used_at
+      - revoked_at
+      title: TokenListItem
+      description: 'Токен в списке: только метаданные, без открытого значения.'
+    TokenResponse:
       properties:
         id:
           type: string
@@ -430,55 +487,41 @@ components:
           type: string
           format: date-time
           title: Created At
-      required:
-        - id
-        - name
-        - token
-        - created_at
-    TokenListItem:
       type: object
-      title: TokenListItem
-      description: "Токен в списке: только метаданные, без открытого значения."
+      required:
+      - id
+      - name
+      - token
+      - created_at
+      title: TokenResponse
+      description: Созданный токен. `token` — открытое значение, единственный раз.
+    UserResponse:
       properties:
         id:
           type: string
           format: uuid
           title: Id
-        name:
+        email:
           type: string
-          title: Name
-        created_at:
+          title: Email
+        role:
           type: string
-          format: date-time
-          title: Created At
-        last_used_at:
-          anyOf:
-            - type: string
-              format: date-time
-            - type: "null"
-          title: Last Used At
-        revoked_at:
-          anyOf:
-            - type: string
-              format: date-time
-            - type: "null"
-          title: Revoked At
-      required:
-        - id
-        - name
-        - created_at
-        - last_used_at
-        - revoked_at
-    ValidationError:
+          title: Role
       type: object
-      title: ValidationError
+      required:
+      - id
+      - email
+      - role
+      title: UserResponse
+      description: Пользователь, от имени которого открыта сессия.
+    ValidationError:
       properties:
         loc:
-          type: array
           items:
             anyOf:
-              - type: string
-              - type: integer
+            - type: string
+            - type: integer
+          type: array
           title: Location
         msg:
           type: string
@@ -486,16 +529,20 @@ components:
         type:
           type: string
           title: Error Type
-      required:
-        - loc
-        - msg
-        - type
-    HTTPValidationError:
       type: object
-      title: HTTPValidationError
-      properties:
-        detail:
-          type: array
-          items:
-            $ref: "#/components/schemas/ValidationError"
-          title: Detail
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: security_gate_session
+      description: 'Cookie-сессия интерфейса: ставится `POST /api/v1/auth/login`, живёт 7 дней, HttpOnly, SameSite=Lax, Path=/.'
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: sg_<token>
+      description: 'Токен проекта для CI: `Authorization: Bearer sg_...`, выдаётся `POST /api/v1/projects/{project_id}/tokens`. Проверка токена и привязка схемы к операциям прогонов появятся в T-008; сейчас ни один путь её не требует.'

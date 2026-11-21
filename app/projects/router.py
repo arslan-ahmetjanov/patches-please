@@ -138,8 +138,21 @@ html_router = APIRouter(include_in_schema=False)
 @api_router.get(
     "",
     summary="Проекты текущего пользователя",
+    description=(
+        "Только проекты, где текущий пользователь участник.\n\n"
+        "Отбор идёт по строкам `project_members`: чужие проекты в ответ не "
+        "попадают. Порядок — от новых к старым."
+    ),
     response_model=list[ProjectResponse],
-    responses={status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse}},
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Проекты, где пользователь участник; пустой массив — если их нет.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Нет действующей сессии.",
+        },
+    },
 )
 def api_list_projects(user: ApiUser, session: DbSession) -> list[ProjectResponse]:
     """Только проекты, где текущий пользователь участник."""
@@ -149,11 +162,25 @@ def api_list_projects(user: ApiUser, session: DbSession) -> list[ProjectResponse
 @api_router.post(
     "",
     summary="Создать проект",
+    description=(
+        "Создаёт проект и членство создателя с ролью `owner` одной транзакцией.\n\n"
+        "Slug уникален: занятый slug даёт 409, проект при этом не создаётся. "
+        "Создавать проекты может любой аутентифицированный пользователь."
+    ),
     status_code=status.HTTP_201_CREATED,
     response_model=ProjectResponse,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-        status.HTTP_409_CONFLICT: {"model": ErrorResponse},
+        status.HTTP_201_CREATED: {
+            "description": "Проект создан, создатель — участник с ролью `owner`.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Нет действующей сессии.",
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": ErrorResponse,
+            "description": "Проект с таким slug уже существует.",
+        },
     },
 )
 def api_create_project(

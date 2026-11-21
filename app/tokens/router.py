@@ -106,10 +106,26 @@ def require_project_owner(session: Session, project_id: uuid.UUID, user: User) -
 @api_router.get(
     "/{project_id}/tokens",
     summary="Токены проекта",
+    description=(
+        "Метаданные токенов проекта без открытых значений: открытое значение "
+        "показывается только в ответе на создание.\n\n"
+        "Порядок — от новых к старым, при равенстве времени — по названию. Список "
+        "доступен участнику проекта; посторонний получает 404, чтобы существование "
+        "чужого проекта не раскрывалось."
+    ),
     response_model=list[TokenListItem],
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_200_OK: {
+            "description": "Токены проекта; пустой массив — если их нет.",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Нет действующей сессии.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Проект не найден или пользователь не его участник.",
+        },
     },
 )
 def api_list_tokens(
@@ -124,12 +140,33 @@ def api_list_tokens(
 @api_router.post(
     "/{project_id}/tokens",
     summary="Создать токен проекта",
+    description=(
+        "Создаёт токен для доступа из CI и возвращает открытое значение ровно "
+        "один раз — в ответе 201.\n\n"
+        "В базе хранится только SHA-256 токена. Создавать токены может только "
+        "владелец проекта (`owner`); участник (`member`) получает 403, "
+        "посторонний — 404."
+    ),
     status_code=status.HTTP_201_CREATED,
     response_model=TokenResponse,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
-        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_201_CREATED: {
+            "description": (
+                "Токен создан. Открытое значение `token` больше не отдаётся ни одним методом."
+            ),
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Нет действующей сессии.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": ErrorResponse,
+            "description": "Пользователь участник проекта, но не его владелец.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Проект не найден или пользователь не его участник.",
+        },
     },
 )
 def api_create_token(
@@ -147,11 +184,29 @@ def api_create_token(
 @api_router.delete(
     "/{project_id}/tokens/{token_id}",
     summary="Отозвать токен проекта",
+    description=(
+        "Помечает токен недействительным: заполняет `revoked_at`, строка остаётся "
+        "в истории. Отозванный токен не проходит проверку.\n\n"
+        "Повторный отзыв тоже отвечает 204. Отзывать токены может только владелец "
+        "проекта; токен другого или несуществующего проекта — 404."
+    ),
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse},
-        status.HTTP_403_FORBIDDEN: {"model": ErrorResponse},
-        status.HTTP_404_NOT_FOUND: {"model": ErrorResponse},
+        status.HTTP_204_NO_CONTENT: {
+            "description": "Токен отозван (в том числе повторно).",
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Нет действующей сессии.",
+        },
+        status.HTTP_403_FORBIDDEN: {
+            "model": ErrorResponse,
+            "description": "Пользователь участник проекта, но не его владелец.",
+        },
+        status.HTTP_404_NOT_FOUND: {
+            "model": ErrorResponse,
+            "description": "Проект или токен этого проекта не найден.",
+        },
     },
 )
 def api_revoke_token(

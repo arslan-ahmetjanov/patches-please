@@ -13,7 +13,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-004 | FR-022, FR-023 | `app/auth/router.py`, `app/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
 | T-005 | FR-017 | `app/projects/router.py`, `app/projects/models.py`, `templates/projects.html`, `tests/test_projects.py` | Модель проекта, список и создание, изоляция по членству | `uv run pytest tests/test_projects.py` | пользователь проекта А не видит проект Б |
 | T-006 | FR-024, FR-025 | `app/tokens/router.py`, `app/tokens/service.py`, `tests/test_tokens.py` | Токен проекта: создание, показ один раз, хеш в БД, отзыв | `uv run pytest tests/test_tokens.py` | повторно токен не отдаётся, отозванный не проходит |
-| T-007 | FR-009 | `contracts/openapi.yaml`, `app/api.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок | валидация схемы, сравнение с живым `/openapi.json` | контракт совпадает с реализацией |
+| T-007 | FR-009 | `contracts/openapi.yaml`, `app/api.py`, `scripts/export_openapi.py`, `tests/test_contract.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок, схемы безопасности | `uv run pytest tests/test_contract.py` | контракт совпадает с реализацией |
 | T-008 | FR-001, FR-007, FR-019 | `app/scans/router.py`, `app/scans/models.py`, `app/scans/queue.py`, `tests/test_scans.py` | `POST /scans` с токеном и `provider`, запись прогона, очередь, поллинг статуса | `uv run pytest tests/test_scans.py` | два провайдера создают прогоны одинаковой структуры |
 | T-009 | FR-016 | `app/scans/service.py`, `tests/test_status.py` | Машина состояний прогона: queued → running → done/error | `uv run pytest tests/test_status.py` | недопустимые переходы отклоняются |
 | T-010 | NFR-005 | `app/worker/main.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
@@ -53,7 +53,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-006 | T-014 | `tests/test_baseline.py` |
 | FR-007 | T-008 | `tests/test_scans.py` |
 | FR-008 | T-020 | `tests/test_reports.py` |
-| FR-009 | T-007, T-008 | валидация контракта, `tests/test_scans.py` |
+| FR-009 | T-007, T-008 | `tests/test_contract.py`, `tests/test_scans.py` |
 | FR-010 | T-022 | `tests/test_web_project.py` |
 | FR-011 | T-015, T-024 | `tests/test_exceptions.py`, `tests/test_web_settings.py` |
 | FR-012 | T-015 | `tests/test_exceptions.py` |

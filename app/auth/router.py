@@ -36,7 +36,7 @@ html_router = APIRouter(include_in_schema=False)
 
 
 class LoginRequest(BaseModel):
-    """Учётные данные для входа."""
+    """Учётные данные для входа в интерфейс."""
 
     email: str = Field(min_length=1, max_length=320)
     password: str = Field(min_length=1, max_length=1024)
@@ -87,8 +87,31 @@ def _clear_session_cookie(response: Response) -> None:
 @api_router.post(
     "/login",
     summary="Вход в интерфейс",
+    description=(
+        "Проверяет email и пароль, создаёт сессию браузера и ставит cookie "
+        "`security_gate_session`.\n\n"
+        "Неверный пароль и неизвестный email дают одинаковый ответ 401: "
+        "наличие учётной записи не раскрывается."
+    ),
     response_model=UserResponse,
-    responses={status.HTTP_401_UNAUTHORIZED: {"model": ErrorResponse}},
+    responses={
+        status.HTTP_200_OK: {
+            "description": "Сессия создана, в Set-Cookie — токен сессии.",
+            "headers": {
+                "Set-Cookie": {
+                    "description": (
+                        "Cookie `security_gate_session`: HttpOnly, SameSite=Lax, "
+                        "Path=/, срок жизни 7 дней."
+                    ),
+                    "schema": {"type": "string"},
+                }
+            },
+        },
+        status.HTTP_401_UNAUTHORIZED: {
+            "model": ErrorResponse,
+            "description": "Неверный email или пароль.",
+        },
+    },
 )
 def api_login(
     payload: LoginRequest,
@@ -110,8 +133,23 @@ def api_login(
 @api_router.post(
     "/logout",
     summary="Выход из интерфейса",
+    description=(
+        "Удаляет строку `sessions` по хешу токена из cookie и очищает cookie.\n\n"
+        "Без активной сессии отвечает 204: повторный вызов безопасен."
+    ),
     status_code=status.HTTP_204_NO_CONTENT,
     response_class=Response,
+    responses={
+        status.HTTP_204_NO_CONTENT: {
+            "description": "Сессия закрыта, cookie очищена.",
+            "headers": {
+                "Set-Cookie": {
+                    "description": "Пустое значение `security_gate_session` с истёкшим сроком.",
+                    "schema": {"type": "string"},
+                }
+            },
+        }
+    },
 )
 def api_logout(request: Request, session: DbSession) -> Response:
     """Закрывает сессию и очищает cookie. Без сессии тоже отвечает 204."""

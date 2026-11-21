@@ -40,6 +40,11 @@ jobs:
       - name: Типы
         run: uv run mypy app
 
+      # Файл contracts/openapi.yaml — артефакт app.openapi(); шаг ловит
+      # расхождение контракта с реализацией до прогона всех тестов.
+      - name: Контракт OpenAPI
+        run: uv run pytest tests/test_contract.py
+
       - name: Быстрые тесты
         run: uv run pytest -m "not integration"
 
