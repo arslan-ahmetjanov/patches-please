@@ -1,4 +1,4 @@
-.PHONY: up down restart ps logs build test lint fmt type check
+.PHONY: up down restart ps logs build test lint fmt type check migrate migrate-down
 
 # Стек Docker Compose
 up:
@@ -17,6 +17,13 @@ logs:
 
 build:
 	docker compose build
+
+# Миграции схемы БД (выполняются с хоста, PostgreSQL должна быть запущена)
+migrate:
+	uv run alembic upgrade head
+
+migrate-down:
+	uv run alembic downgrade -1
 
 # Качество кода
 test:
