@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мои проекты — Security Gate</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: Canvas;
+      color: CanvasText;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid currentColor;
+    }
+    header .spacer { flex: 1; }
+    header form { margin: 0; }
+    main {
+      max-width: 60rem;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+    h1 { margin: 0; font-size: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.125rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid currentColor; text-align: left; }
+    td code { font-size: 0.85rem; }
+    .empty {
+      margin: 0;
+      padding: 1rem;
+      border: 1px dashed currentColor;
+      border-radius: 0.25rem;
+    }
+    .error {
+      margin: 0;
+      padding: 0.5rem;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      font-size: 0.9rem;
+    }
+    form.create { display: grid; gap: 0.25rem; max-width: 30rem; }
+    label { font-size: 0.9rem; }
+    input {
+      box-sizing: border-box;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      font: inherit;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      background: Field;
+      color: FieldText;
+    }
+    .hint { margin: -0.25rem 0 0.75rem; font-size: 0.8rem; }
+    button {
+      padding: 0.5rem 1rem;
+      font: inherit;
+      border: 0;
+      border-radius: 0.25rem;
+      background: Highlight;
+      color: HighlightText;
+      cursor: pointer;
+    }
+    button.link {
+      padding: 0.25rem 0.5rem;
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Security Gate</strong>
+    <span class="spacer"></span>
+    <span>{{ user.email }}</span>
+    <form method="post" action="/logout">
+      <button type="submit" class="link">Выйти</button>
+    </form>
+  </header>
+  <main>
+    <section>
+      <h1>Мои проекты</h1>
+    </section>
+
+    {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if projects %}
+    <table>
+      <thead>
+        <tr>
+          <th>Название</th>
+          <th>Slug</th>
+          <th>Репозиторий</th>
+          <th>Ветка</th>
+          <th>Создан</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr>
+          <td>{{ project.name }}</td>
+          <td><code>{{ project.slug }}</code></td>
+          <td>{% if project.repo_url %}{{ project.repo_url }}{% else %}—{% endif %}</td>
+          <td>{{ project.default_branch }}</td>
+          <td>{{ project.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">Пока нет проектов. Создайте первый — форма ниже.</p>
+    {% endif %}
+
+    <section>
+      <h2>Новый проект</h2>
+      <form class="create" method="post" action="/projects">
+        <label for="name">Название</label>
+        <input id="name" name="name" type="text" maxlength="200" value="{{ values.name }}" required>
+
+        <label for="slug">Slug</label>
+        <input id="slug" name="slug" type="text" maxlength="100"
+               pattern="[a-z0-9][a-z0-9-]{1,99}" value="{{ values.slug }}" required>
+        <p class="hint">Строчные латинские буквы, цифры и дефис. Виден в адресе страницы.</p>
+
+        <label for="repo_url">Адрес репозитория</label>
+        <input id="repo_url" name="repo_url" type="url" maxlength="2048" value="{{ values.repo_url }}">
+
+        <label for="default_branch">Ветка по умолчанию</label>
+        <input id="default_branch" name="default_branch" type="text" maxlength="255"
+               value="{{ values.default_branch }}" required>
+
+        <button type="submit">Создать проект</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

@@ -36,7 +36,7 @@ def test_t_002_single_head() -> None:
     """В репозитории ровно одна голова: миграции линейны и применяются по порядку."""
     heads = ScriptDirectory.from_config(_config()).get_heads()
 
-    assert heads == ["0001"]
+    assert heads == ["0002"]
 
 
 def test_t_002_upgrade_creates_users_and_sessions() -> None:

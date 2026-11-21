@@ -1,5 +1,6 @@
 # Контракт REST API Security Gate.
-# На этапе 2 описаны служебный эндпоинт и вход/выход (T-004); полный контракт собирается в T-007.
+# На этапе 2 описаны служебный эндпоинт, вход/выход (T-004) и проекты (T-005);
+# полный контракт собирается в T-007.
 openapi: 3.1.0
 info:
   title: Security Gate
@@ -72,6 +73,65 @@ paths:
               description: "Пустое значение `security_gate_session` с истёкшим сроком."
               schema:
                 type: string
+  /api/v1/projects:
+    get:
+      tags:
+        - проекты
+      summary: Проекты текущего пользователя
+      description: "Только проекты, где текущий пользователь участник.\n\nОтбор идёт по строкам `project_members`: чужие проекты в ответ не попадают. Порядок — от новых к старым."
+      operationId: api_list_projects_api_v1_projects_get
+      responses:
+        "200":
+          description: Проекты, где пользователь участник; пустой массив — если их нет.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectResponse"
+        "401":
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - проекты
+      summary: Создать проект
+      description: "Создаёт проект и членство создателя с ролью `owner` одной транзакцией.\n\nSlug уникален: занятый slug даёт 409, проект при этом не создаётся. Создавать проекты может любой аутентифицированный пользователь."
+      operationId: api_create_project_api_v1_projects_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectCreate"
+      responses:
+        "201":
+          description: Проект создан, создатель — участник с ролью `owner`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectResponse"
+        "401":
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Проект с таким slug уже существует.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
 components:
   schemas:
     HealthResponse:
@@ -131,6 +191,71 @@ components:
           title: Detail
       required:
         - detail
+    ProjectCreate:
+      type: object
+      title: ProjectCreate
+      description: "Данные создания проекта. Slug вводится вручную, repo_url необязателен."
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          title: Name
+        slug:
+          type: string
+          minLength: 2
+          maxLength: 100
+          pattern: "^[a-z0-9][a-z0-9-]{1,99}$"
+          title: Slug
+        repo_url:
+          anyOf:
+            - type: string
+              maxLength: 2048
+            - type: "null"
+          title: Repo Url
+        default_branch:
+          type: string
+          minLength: 1
+          maxLength: 255
+          default: main
+          title: Default Branch
+      required:
+        - name
+        - slug
+    ProjectResponse:
+      type: object
+      title: ProjectResponse
+      description: "Проект в ответе API."
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        slug:
+          type: string
+          title: Slug
+        repo_url:
+          anyOf:
+            - type: string
+            - type: "null"
+          title: Repo Url
+        default_branch:
+          type: string
+          title: Default Branch
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      required:
+        - id
+        - name
+        - slug
+        - repo_url
+        - default_branch
+        - created_at
     ValidationError:
       type: object
       title: ValidationError

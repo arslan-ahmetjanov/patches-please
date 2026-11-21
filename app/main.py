@@ -1,18 +1,20 @@
 """HTTP API Security Gate.
 
-Точка входа процесса `api`: служебные эндпоинты и, начиная с этапа 2,
-REST API и веб-интерфейс.
+Точка входа процесса `api`: служебные эндпоинты, REST API и веб-интерфейс.
 """
 
 from typing import Literal
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
+from app.auth.dependencies import LoginRequiredError
 from app.auth.router import api_router as auth_api_router
 from app.auth.router import html_router as auth_html_router
+from app.projects.router import api_router as projects_api_router
+from app.projects.router import html_router as projects_html_router
 
 app = FastAPI(
     title="Security Gate",
@@ -22,6 +24,17 @@ app = FastAPI(
 
 app.include_router(auth_api_router)
 app.include_router(auth_html_router)
+app.include_router(projects_api_router)
+app.include_router(projects_html_router)
+
+
+@app.exception_handler(LoginRequiredError)
+async def login_required_handler(request: Request, exc: LoginRequiredError) -> RedirectResponse:
+    """Страница без сессии уводит на `/login`.
+
+    303 — чтобы браузер запросил страницу входа методом GET, а не повторил POST.
+    """
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.exception_handler(RequestValidationError)
