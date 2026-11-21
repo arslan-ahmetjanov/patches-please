@@ -1,0 +1,88 @@
+name: CI
+
+# Непрерывная интеграция (T-003, NFR-001): проверки на каждый push и pull request.
+# Линт, типы и быстрые тесты идут без базы; интеграционные тесты поднимают postgres:16.
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Линт, типы и быстрые тесты
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Клонирование репозитория
+        uses: actions/checkout@v7
+
+      # Версия Python берётся из .python-version, отдельно её не задаём.
+      - name: Установка uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Зависимости
+        run: uv sync --frozen
+
+      - name: Формат
+        run: uv run ruff format --check .
+
+      - name: Линт
+        run: uv run ruff check .
+
+      - name: Типы
+        run: uv run mypy app
+
+      - name: Быстрые тесты
+        run: uv run pytest -m "not integration"
+
+  integration:
+    name: Интеграционные тесты с PostgreSQL
+    # Решение: гоняем на каждый push и PR, а не только на main. Тестов пока мало,
+    # job занимает около минуты, зато расхождение миграций и моделей видно сразу в PR.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: security_gate
+          POSTGRES_PASSWORD: security_gate_local
+          POSTGRES_DB: security_gate
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U security_gate -d security_gate"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Только учётные данные локального сервиса из этого job, секреты GitHub не нужны.
+      # Фикстуры заменяют имя базы на security_gate_test и применяют миграции сами.
+      DATABASE_URL: postgresql+psycopg://security_gate:security_gate_local@localhost:5432/security_gate
+    steps:
+      - name: Клонирование репозитория
+        uses: actions/checkout@v7
+
+      - name: Установка uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Зависимости
+        run: uv sync --frozen
+
+      - name: Миграции
+        # Реальный путь из README: Alembic применяет миграции к базе сервиса.
+        # Тестовую базу security_gate_test мигрируют фикстуры при первом обращении.
+        run: uv run alembic upgrade head
+
+      - name: Интеграционные тесты
+        run: uv run pytest -m integration
