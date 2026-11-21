@@ -7,10 +7,11 @@
 """
 
 import os
+from collections.abc import Iterator
 from typing import Final
 
 from sqlalchemy import Engine, MetaData, create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 DEFAULT_DATABASE_URL: Final = (
     "postgresql+psycopg://security_gate:security_gate_local@localhost:5432/security_gate"
@@ -48,3 +49,13 @@ engine = build_engine()
 # expire_on_commit=False: объекты остаются читаемыми после коммита, а не превращаются
 # в «просроченные» и не требуют лишнего запроса ради того же значения.
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
+
+
+def get_db() -> Iterator[Session]:
+    """Зависимость FastAPI: сессия БД на время запроса, закрывается после ответа.
+
+    Роутеры получают её через `Depends(get_db)`; тесты подменяют её на сессию
+    в откатываемой транзакции, поэтому `app.dependency_overrides` работает.
+    """
+    with SessionLocal() as session:
+        yield session

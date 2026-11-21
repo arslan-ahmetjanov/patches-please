@@ -1,5 +1,5 @@
 # Контракт REST API Security Gate.
-# На этапе 1 описан только служебный эндпоинт; полный контракт собирается в T-007.
+# На этапе 2 описаны служебный эндпоинт и вход/выход (T-004); полный контракт собирается в T-007.
 openapi: 3.1.0
 info:
   title: Security Gate
@@ -20,6 +20,58 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+  /api/v1/auth/login:
+    post:
+      tags:
+        - аутентификация
+      summary: Вход в интерфейс
+      description: "Проверяет email и пароль, создаёт сессию браузера и ставит cookie `security_gate_session`.\n\nНеверный пароль и неизвестный email дают одинаковый ответ 401: наличие учётной записи не раскрывается."
+      operationId: api_login_api_v1_auth_login_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: "Сессия создана, в Set-Cookie — токен сессии."
+          headers:
+            Set-Cookie:
+              description: "Cookie `security_gate_session`: HttpOnly, SameSite=Lax, Path=/, срок жизни 7 дней."
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: Неверный email или пароль.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - аутентификация
+      summary: Выход из интерфейса
+      description: "Удаляет строку `sessions` по хешу токена из cookie и очищает cookie.\n\nБез активной сессии отвечает 204: повторный вызов безопасен."
+      operationId: api_logout_api_v1_auth_logout_post
+      responses:
+        "204":
+          description: "Сессия закрыта, cookie очищена."
+          headers:
+            Set-Cookie:
+              description: "Пустое значение `security_gate_session` с истёкшим сроком."
+              schema:
+                type: string
 components:
   schemas:
     HealthResponse:
@@ -32,3 +84,80 @@ components:
           const: ok
           default: ok
           title: Status
+    LoginRequest:
+      type: object
+      title: LoginRequest
+      description: "Учётные данные для входа в интерфейс."
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 320
+          title: Email
+        password:
+          type: string
+          minLength: 1
+          maxLength: 1024
+          title: Password
+      required:
+        - email
+        - password
+    UserResponse:
+      type: object
+      title: UserResponse
+      description: "Пользователь, от имени которого открыта сессия."
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        email:
+          type: string
+          title: Email
+        role:
+          type: string
+          title: Role
+      required:
+        - id
+        - email
+        - role
+    ErrorResponse:
+      type: object
+      title: ErrorResponse
+      description: "Ошибка запроса в едином формате."
+      properties:
+        detail:
+          type: string
+          title: Detail
+      required:
+        - detail
+    ValidationError:
+      type: object
+      title: ValidationError
+      properties:
+        loc:
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+      required:
+        - loc
+        - msg
+        - type
+    HTTPValidationError:
+      type: object
+      title: HTTPValidationError
+      properties:
+        detail:
+          type: array
+          items:
+            $ref: "#/components/schemas/ValidationError"
+          title: Detail

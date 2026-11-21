@@ -19,6 +19,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
 COPY app ./app
+COPY templates ./templates
 
 USER app
 

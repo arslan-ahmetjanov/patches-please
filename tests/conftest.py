@@ -4,6 +4,11 @@ HTTP-тесты идут в приложение через ASGI-транспо�
 и без TestClient, который устарел в starlette. Обвязка собрана в `AppClient`,
 чтобы тесты не дублировали `asyncio.run` и настройку транспорта.
 
+`AppClient` помнит cookie между запросами (T-004, FR-022, FR-023), поэтому цепочка
+«вход → сессия → выход» проверяется тем же клиентом. Фикстура `db_client`
+подменяет зависимость `get_db` на тестовую сессию, а `client` остаётся без базы:
+healthcheck и валидация входных данных работают и без неё.
+
 Интеграционным тестам нужна отдельная база `security_gate_test`. Фикстуры
 создают её при первом обращении, применяют миграции Alembic и откатывают
 изменения после каждого теста. Из `DATABASE_URL` берутся только сервер и
@@ -27,7 +32,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 from starlette.types import ASGIApp
 
-from app.db import database_url
+from app.db import database_url, get_db
 from app.main import app
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -36,16 +41,33 @@ TEST_DATABASE_NAME = "security_gate_test"
 
 
 class AppClient:
-    """Синхронный клиент приложения поверх httpx.ASGITransport."""
+    """Синхронный клиент приложения поверх httpx.ASGITransport.
+
+    Клиент помнит cookie между запросами: иначе не проверить цепочку
+    «вход → сессия в cookie → выход». Наружу он отдаёт `cookies`, а `clear_cookies`
+    забывает их, когда нужен анонимный запрос.
+    """
 
     def __init__(self, asgi_app: ASGIApp, base_url: str = "http://security-gate") -> None:
         self._app = asgi_app
         self._base_url = base_url
+        self.cookies = httpx.Cookies()
 
     async def _send(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         transport = httpx.ASGITransport(app=self._app)
-        async with httpx.AsyncClient(transport=transport, base_url=self._base_url) as client:
-            return await client.request(method, url, **kwargs)
+        async with httpx.AsyncClient(
+            transport=transport,
+            base_url=self._base_url,
+            cookies=self.cookies,
+        ) as client:
+            response = await client.request(method, url, **kwargs)
+            # Клиент живёт один запрос, поэтому jar переносим в атрибут AppClient.
+            self.cookies = client.cookies
+            return response
+
+    def clear_cookies(self) -> None:
+        """Забывает сохранённые cookie: следующий запрос уходит без сессии."""
+        self.cookies = httpx.Cookies()
 
     def request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         """Выполняет запрос в отдельном цикле событий: тесты остаются синхронными."""
@@ -66,8 +88,30 @@ class AppClient:
 
 @pytest.fixture
 def client() -> AppClient:
-    """Клиент приложения: запрос идёт в ASGI-приложение, сеть не нужна."""
+    """Клиент приложения: запрос идёт в ASGI-приложение, сеть не нужна.
+
+    База не подключается: healthcheck и валидация входных данных работают без неё.
+    Тестам, которым нужна БД, — фикстура `db_client`.
+    """
     return AppClient(app)
+
+
+@pytest.fixture
+def db_client(db_session: Session) -> Iterator[AppClient]:
+    """Клиент приложения с базой: `get_db` подменён на сессию из `db_session`.
+
+    Так приложение в тестах не берёт engine из `DATABASE_URL` (это была бы база
+    стенда), а все записи откатываются вместе с транзакцией фикстуры.
+    """
+
+    def _get_db() -> Session:
+        return db_session
+
+    app.dependency_overrides[get_db] = _get_db
+    try:
+        yield AppClient(app)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
 
 
 @contextmanager

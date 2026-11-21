@@ -2,12 +2,14 @@
 
 Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения.
 
+Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004).
+
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
 | T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `app/main.py`, `app/worker/main.py`, `Makefile`, `.env.example`, `pyproject.toml`, `contracts/openapi.yaml` | Compose с postgres, redis, api, worker; healthcheck; каркас `pyproject.toml` с pytest, ruff, mypy; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
 | T-002 | NFR-005 | `app/db.py`, `alembic.ini`, `migrations/`, `README.md` | Подключение к PostgreSQL, Alembic, первая миграция `users` и `sessions` | `uv run alembic upgrade head`, перезапуск стека | миграция применяется, после рестарта данные на месте |
 | T-003 | NFR-001 | `tests/conftest.py`, `.github/workflows/ci.yml` | Общие фикстуры pytest, CI на push и PR | `uv run pytest`, `uv run ruff check .` | CI зелёный на каркасе T-001 |
-| T-004 | FR-009 | `app/auth/router.py`, `app/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
+| T-004 | FR-022, FR-023 | `app/auth/router.py`, `app/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
 | T-005 | FR-017 | `app/projects/router.py`, `app/projects/models.py`, `templates/projects.html`, `tests/test_projects.py` | Модель проекта, список и создание, изоляция по членству | `uv run pytest tests/test_projects.py` | пользователь проекта А не видит проект Б |
 | T-006 | FR-009 | `app/tokens/router.py`, `app/tokens/service.py`, `tests/test_tokens.py` | Токен проекта: создание, показ один раз, хеш в БД, отзыв | `uv run pytest tests/test_tokens.py` | повторно токен не отдаётся, отозванный не проходит |
 | T-007 | FR-009 | `contracts/openapi.yaml`, `app/api.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок | валидация схемы, сравнение с живым `/openapi.json` | контракт совпадает с реализацией |
@@ -27,7 +29,7 @@
 | T-021 | NFR-004 | `app/normalize/mask.py`, `tests/test_masking.py` | Маскирование секретов в находках, логах и отчётах | `uv run pytest tests/test_masking.py` | тестовый секрет не встречается в открытом виде ни в одном выходе |
 | T-022 | FR-010, CON-004 | `templates/project.html`, `app/web/router.py`, `tests/test_web_project.py` | Страница проекта: последние прогоны, тренд, топ-5 правил, русские подписи | `uv run pytest tests/test_web_project.py` | S-006 проходит, пустых состояний при наличии данных нет |
 | T-023 | FR-003, FR-018 | `templates/scan.html`, `tests/test_web_scan.py` | Страница прогона: находки с фильтрами по severity и состоянию, проверка прав | `uv run pytest tests/test_web_scan.py` | чужой проект отдаёт 403, фильтры работают |
-| T-024 | FR-014, FR-011 | `templates/settings.html`, `templates/policy_form.html`, `tests/test_web_settings.py` | Формы политики и исключений с валидацией полей | `uv run pytest tests/test_web_settings.py` | форма без причины не сохраняется |
+| T-024 | FR-014, FR-011 | `templates/settings.html`, `templates/policy_form.html`, `tests/test_web_settings.py` | Формы политики и исключений с валидацией полей, CSRF-токены и secure-cookie для HTTPS | `uv run pytest tests/test_web_settings.py` | форма без причины не сохраняется |
 | T-025 | FR-018 | `app/auth/permissions.py`, `tests/test_permissions.py` | Единая проверка прав на проект для API и страниц | `uv run pytest tests/test_permissions.py` | все точки доступа покрыты, 403 без утечки данных |
 | T-026 | FR-019, FR-020, FR-021 | `.github/actions/security-gate/action.yml`, `.github/workflows/demo-scan.yml`, `docs/ci-github.md` | Композитный action: старт, поллинг, код выхода; демо-воркфлоу | реальный прогон в GitHub | job падает при `fail` и проходит при `pass` |
 | T-027 | FR-019, FR-020, FR-021 | `ci/gitlab/security-gate.yml`, `.gitlab-ci.yml`, `docs/ci-gitlab.md` | Шаблон job для GitLab, инструкция, локальная проверка | `gitlab-ci-local` | пайплайн валиден и проходит локально |
@@ -50,7 +52,7 @@
 | FR-006 | T-014 | `tests/test_baseline.py` |
 | FR-007 | T-008 | `tests/test_scans.py` |
 | FR-008 | T-020 | `tests/test_reports.py` |
-| FR-009 | T-004, T-006, T-007, T-008 | `tests/test_auth.py`, `tests/test_tokens.py`, валидация контракта |
+| FR-009 | T-006, T-007, T-008 | `tests/test_tokens.py`, валидация контракта |
 | FR-010 | T-022 | `tests/test_web_project.py` |
 | FR-011 | T-015, T-024 | `tests/test_exceptions.py`, `tests/test_web_settings.py` |
 | FR-012 | T-015 | `tests/test_exceptions.py` |
@@ -63,6 +65,8 @@
 | FR-019 | T-008, T-026, T-027, T-028 | `tests/test_scans.py`, `tests/test_parity.py`, демо-пайплайны |
 | FR-020 | T-026, T-027 | GitHub demo-воркфлоу, `gitlab-ci-local` |
 | FR-021 | T-026, T-027 | `docs/ci-github.md`, `docs/ci-gitlab.md` |
+| FR-022 | T-004 | `tests/test_auth.py` (`test_fr_022_*`) |
+| FR-023 | T-004 | `tests/test_auth.py` (`test_fr_023_*`) |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
 | NFR-003 | T-013 | офлайн-прогон на демо |
