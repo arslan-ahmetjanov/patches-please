@@ -76,7 +76,7 @@ flowchart LR
 | `users` | id, email, password_hash, role, created_at | вход в интерфейс |
 | `sessions` | token_hash, user_id, expires_at | сессия браузера |
 | `projects` | id, name, slug, repo_url, default_branch | объект проверки |
-| `project_tokens` | id, project_id, name, token_hash, last_used_at, revoked_at | доступ из CI |
+| `project_tokens` | id, project_id, name, token_hash, created_at, last_used_at, revoked_at | доступ из CI |
 | `policies` | project_id, block_severities[], fail_mode, scanner_timeout_sec | правила вердикта |
 | `scans` | id, project_id, commit_sha, ref, provider, status, verdict, timings, error | прогон |
 | `scanner_runs` | id, scan_id, scanner, status, error, tool_version, duration_ms | состояние каждого сканера |
@@ -85,7 +85,7 @@ flowchart LR
 | `exceptions` | project_id, rule_id, path_glob, reason, author_id, expires_at, revoked_at | исключения с сроком |
 | `audit_events` | actor, action, entity, payload jsonb, created_at | журнал действий |
 
-Индексы: `findings(scan_id, severity)`, `findings(fingerprint)`, `scans(project_id, started_at desc)`, `project_tokens(token_hash)`.
+Индексы: `findings(scan_id, severity)`, `findings(fingerprint)`, `scans(project_id, started_at desc)`, `project_tokens(token_hash)`, `project_tokens(project_id)`.
 
 **Fingerprint:** `sha256(scanner | rule_id | path | normalized_snippet)`. Не включает номер строки — иначе любая правка выше ломает baseline. Следствие: переименование файла даёт «новую» находку. Это принимаем и фиксируем в документации.
 
@@ -97,7 +97,9 @@ flowchart LR
 | GET/POST | `/api/v1/projects` | сессия |
 | GET | `/api/v1/projects/{id}` | сессия, член проекта |
 | PUT | `/api/v1/projects/{id}/policy` | админ |
-| POST | `/api/v1/projects/{id}/tokens` | админ, токен показывается один раз |
+| GET | `/api/v1/projects/{id}/tokens` | сессия, участник проекта, без открытых значений |
+| POST | `/api/v1/projects/{id}/tokens` | владелец проекта (`owner`), токен показывается один раз |
+| DELETE | `/api/v1/projects/{id}/tokens/{token_id}` | владелец проекта, мягкий отзыв |
 | POST | `/api/v1/scans` | токен проекта |
 | GET | `/api/v1/scans/{id}` | токен проекта или сессия |
 | GET | `/api/v1/scans/{id}/findings` | то же, фильтры `severity`, `state`, `excluded` |

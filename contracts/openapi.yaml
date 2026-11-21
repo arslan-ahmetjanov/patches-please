@@ -1,5 +1,6 @@
 # Контракт REST API Security Gate.
-# На этапе 2 описаны служебный эндпоинт, вход/выход (T-004) и проекты (T-005);
+# На этапе 2 описаны служебный эндпоинт, вход/выход (T-004), проекты (T-005)
+# и токены проектов (T-006);
 # полный контракт собирается в T-007.
 openapi: 3.1.0
 info:
@@ -122,6 +123,148 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Проект с таким slug уже существует.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/projects/{project_id}/tokens:
+    get:
+      tags:
+        - токены
+      summary: Токены проекта
+      description: "Метаданные токенов проекта без открытых значений: открытое значение показывается только в ответе на создание.\n\nПорядок — от новых к старым, при равенстве времени — по названию. Список доступен участнику проекта; посторонний получает 404, чтобы существование чужого проекта не раскрывалось."
+      operationId: api_list_tokens_api_v1_projects__project_id__tokens_get
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Project Id
+      responses:
+        "200":
+          description: Токены проекта; пустой массив — если их нет.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TokenListItem"
+        "401":
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Проект не найден или пользователь не его участник.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+    post:
+      tags:
+        - токены
+      summary: Создать токен проекта
+      description: "Создаёт токен для доступа из CI и возвращает открытое значение ровно один раз — в ответе 201.\n\nВ базе хранится только SHA-256 токена. Создавать токены может только владелец проекта (`owner`); участник (`member`) получает 403, посторонний — 404."
+      operationId: api_create_token_api_v1_projects__project_id__tokens_post
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenCreate"
+      responses:
+        "201":
+          description: "Токен создан. Открытое значение `token` больше не отдаётся ни одним методом."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+        "401":
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Пользователь участник проекта, но не его владелец.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Проект не найден или пользователь не его участник.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422":
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HTTPValidationError"
+  /api/v1/projects/{project_id}/tokens/{token_id}:
+    delete:
+      tags:
+        - токены
+      summary: Отозвать токен проекта
+      description: "Помечает токен недействительным: заполняет `revoked_at`, строка остаётся в истории. Отозванный токен не проходит проверку.\n\nПовторный отзыв тоже отвечает 204. Отзывать токены может только владелец проекта; токен другого или несуществующего проекта — 404."
+      operationId: api_revoke_token_api_v1_projects__project_id__tokens__token_id__delete
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Project Id
+        - name: token_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+            title: Token Id
+      responses:
+        "204":
+          description: Токен отозван (в том числе повторно).
+        "401":
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Пользователь участник проекта, но не его владелец.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Проект или токен этого проекта не найден.
           content:
             application/json:
               schema:
@@ -256,6 +399,76 @@ components:
         - repo_url
         - default_branch
         - created_at
+    TokenCreate:
+      type: object
+      title: TokenCreate
+      description: "Название токена: по нему владелец отличает токены в списке."
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          title: Name
+      required:
+        - name
+    TokenResponse:
+      type: object
+      title: TokenResponse
+      description: "Созданный токен. `token` — открытое значение, единственный раз."
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        token:
+          type: string
+          title: Token
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      required:
+        - id
+        - name
+        - token
+        - created_at
+    TokenListItem:
+      type: object
+      title: TokenListItem
+      description: "Токен в списке: только метаданные, без открытого значения."
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        name:
+          type: string
+          title: Name
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        last_used_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Last Used At
+        revoked_at:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: "null"
+          title: Revoked At
+      required:
+        - id
+        - name
+        - created_at
+        - last_used_at
+        - revoked_at
     ValidationError:
       type: object
       title: ValidationError
