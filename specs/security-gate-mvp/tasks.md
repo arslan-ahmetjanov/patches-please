@@ -4,7 +4,8 @@
 
 Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004);
 [delta-002-tokens.md](delta-002-tokens.md) — FR-024, FR-025 (T-006);
-[delta-003-status.md](delta-003-status.md) — FR-026 (T-009).
+[delta-003-status.md](delta-003-status.md) — FR-026 (T-009);
+[delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010).
 
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
@@ -17,7 +18,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-007 | FR-009 | `contracts/openapi.yaml`, `app/api.py`, `scripts/export_openapi.py`, `tests/test_contract.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок, схемы безопасности | `uv run pytest tests/test_contract.py` | контракт совпадает с реализацией |
 | T-008 | FR-001, FR-007, FR-019 | `app/scans/router.py`, `app/scans/models.py`, `app/scans/queue.py`, `tests/test_scans.py` | `POST /scans` с токеном и `provider`, запись прогона, очередь, поллинг статуса | `uv run pytest tests/test_scans.py` | два провайдера создают прогоны одинаковой структуры |
 | T-009 | FR-026 | `app/scans/service.py`, `app/scans/queue.py`, `tests/test_status.py` | Машина состояний прогона: `queued → running → done/error`, время начала и завершения, причина ошибки; воркер переводит `queued → running` | `uv run pytest tests/test_status.py` | недопустимые переходы отклоняются, `started_at`/`finished_at` заполняются один раз |
-| T-010 | NFR-005 | `app/worker/main.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
+| T-010 | FR-027 | `app/worker/main.py`, `app/scans/queue.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
 | T-011 | FR-002 | `app/scanners/base.py`, `app/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
 | T-012 | FR-003 | `app/normalize/model.py`, `app/normalize/sarif.py`, `app/normalize/fingerprint.py`, `tests/fixtures/*.sarif` | Нормализация SARIF, fingerprint, дедупликация внутри прогона | `uv run pytest tests/test_normalize.py` | все обязательные поля заполнены, дубли схлопнуты |
 | T-013 | FR-002, NFR-003 | `Dockerfile.worker`, `app/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на демо-репозитории | три сканера дают SARIF без доступа в интернет |
@@ -72,11 +73,12 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-024 | T-006 | `tests/test_tokens.py` (`test_fr_024_*`) |
 | FR-025 | T-006 | `tests/test_tokens.py` (`test_fr_025_*`) |
 | FR-026 | T-009 | `tests/test_status.py` (`test_fr_026_*`) |
+| FR-027 | T-010 | `tests/test_worker_resilience.py` (`test_fr_027_*`) |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
 | NFR-003 | T-013 | офлайн-прогон на демо |
 | NFR-004 | T-021 | `tests/test_masking.py` |
-| NFR-005 | T-002, T-010 | `tests/test_worker_resilience.py` |
+| NFR-005 | T-002 | перезапуск стека, история на месте |
 | NFR-006 | T-033 | `docs/runbook.md` |
 | CON-001 | T-031 | `docs/licenses.md` |
 | CON-002 | T-001 | `docker compose up` |

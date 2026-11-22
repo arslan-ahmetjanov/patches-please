@@ -44,9 +44,11 @@ class FakeQueue:
 
     def __init__(self) -> None:
         self.calls: list[tuple[object, str]] = []
+        self.options: list[dict[str, object]] = []
 
-    def enqueue(self, func: object, scan_id: str) -> None:
+    def enqueue(self, func: object, scan_id: str, **options: object) -> None:
         self.calls.append((func, scan_id))
+        self.options.append(options)
 
 
 @pytest.fixture
