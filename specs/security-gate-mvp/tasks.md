@@ -7,7 +7,8 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 [delta-003-status.md](delta-003-status.md) — FR-026 (T-009);
 [delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010);
 [delta-005-scanner-runner.md](delta-005-scanner-runner.md) — FR-028 (T-011);
-[delta-006-findings.md](delta-006-findings.md) — FR-029 (T-012).
+[delta-006-findings.md](delta-006-findings.md) — FR-029 (T-012);
+[delta-007-scanners.md](delta-007-scanners.md) — FR-030 (T-013).
 
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
@@ -23,7 +24,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-010 | FR-027 | `app/worker/main.py`, `app/scans/queue.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
 | T-011 | FR-028 | `app/scanners/base.py`, `app/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
 | T-012 | FR-003, FR-029 | `app/normalize/model.py`, `app/normalize/sarif.py`, `app/normalize/fingerprint.py`, `tests/fixtures/*.sarif`, `tests/test_normalize.py` | Нормализация SARIF, fingerprint, дедупликация внутри прогона | `uv run pytest tests/test_normalize.py` | все обязательные поля заполнены, дубли схлопнуты |
-| T-013 | FR-002, NFR-003 | `Dockerfile.worker`, `app/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на демо-репозитории | три сканера дают SARIF без доступа в интернет |
+| T-013 | FR-002, FR-030, NFR-003 | `Dockerfile.worker`, `docker-compose.yml`, `app/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `process.py`, `offline.py`, `scanner-rules/semgrep/`, `tests/fixtures/scanner-repo/`, `tests/test_adapters.py`, `tests/test_process.py`, `tests/test_offline.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на тестовом репозитории | три сканера дают SARIF без доступа в интернет |
 | T-014 | FR-006, FR-016 | `app/policy/baseline.py`, `app/policy/classify.py`, `tests/test_baseline.py` | Установка baseline, сравнение, метки `new`/`existing`/`fixed` | `uv run pytest tests/test_baseline.py` | сценарий S-003 проходит на данных |
 | T-015 | FR-011, FR-012 | `app/policy/exceptions.py`, `templates/exceptions.html`, `tests/test_exceptions.py` | Исключения с причиной и сроком, автоповтор после истечения, аудит | `uv run pytest tests/test_exceptions.py` | S-005 проходит, истёкшее исключение снова влияет на вердикт |
 | T-016 | FR-015 | `app/metrics/service.py`, `tests/test_metrics.py` | Расчёт метрик прогона: длительность, находки, новые/исправленные, доля исключённых | `uv run pytest tests/test_metrics.py` | все пять метрик считаются и сохраняются |
@@ -50,7 +51,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | Требование | Задачи | Тесты |
 | --- | --- | --- |
 | FR-001 | T-008 | `tests/test_scans.py` |
-| FR-002 | T-013 | `docs/scanners.md` |
+| FR-002 | T-013 | `tests/test_adapters.py`, офлайн-прогон трёх сканеров |
 | FR-003 | T-012, T-023 | `tests/test_normalize.py`, `tests/test_web_scan.py` |
 | FR-004 | T-017 | `tests/test_policy.py` |
 | FR-005 | T-018 | `tests/test_blocking.py` |
@@ -78,9 +79,10 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-027 | T-010 | `tests/test_worker_resilience.py` (`test_fr_027_*`) |
 | FR-028 | T-011 | `tests/test_runner.py` (`test_fr_028_*`) |
 | FR-029 | T-012 | `tests/test_normalize.py` (`test_fr_029_*`) |
+| FR-030 | T-013 | `tests/test_process.py`, `tests/test_adapters.py`, `tests/test_offline.py` (`test_fr_030_*`) |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
-| NFR-003 | T-013 | офлайн-прогон на демо |
+| NFR-003 | T-013 | офлайн-прогон на тестовом репозитории, `docs/scanners.md` |
 | NFR-004 | T-021 | `tests/test_masking.py` |
 | NFR-005 | T-002 | перезапуск стека, история на месте |
 | NFR-006 | T-033 | `docs/runbook.md` |

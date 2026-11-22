@@ -68,7 +68,8 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      # Сканеры и их правила/базы живут только в образе worker (T-013).
+      dockerfile: Dockerfile.worker
     image: security-gate-worker:local
     restart: unless-stopped
     init: true

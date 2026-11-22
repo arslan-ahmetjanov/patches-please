@@ -1,0 +1,109 @@
+# Отдельный образ worker: api остаётся без сканеров (T-013, FR-002, NFR-003).
+#
+# Semgrep ставится точной версией из PyPI в отдельное окружение, Gitleaks и Trivy —
+# закреплёнными релизами с проверкой SHA256. Правила Semgrep лежат в репозитории
+# (scanner-rules/semgrep), база Trivy скачивается при сборке: в рантайме сеть не
+# нужна. Версии и порядок обновления — docs/scanners.md.
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+
+ARG SEMGREP_VERSION=1.186.0
+ARG GITLEAKS_VERSION=8.30.1
+ARG GITLEAKS_SHA256_AMD64=551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+ARG GITLEAKS_SHA256_ARM64=e4a487ee7ccd7d3a7f7ec08657610aa3606637dab924210b3aee62570fb4b080
+ARG TRIVY_VERSION=0.76.2
+ARG TRIVY_SHA256_AMD64=bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+ARG TRIVY_SHA256_ARM64=ab9d51f86e6a5fb936f605faff6b593ac51bc378fff4d3e8b9d58358b9c367c3
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/opt/venv \
+    PATH="/opt/venv/bin:/opt/semgrep/bin:/usr/local/bin:$PATH" \
+    SEMGREP_RULES_DIR=/opt/semgrep-rules \
+    SEMGREP_SEND_METRICS=off \
+    TRIVY_CACHE_DIR=/opt/trivy-cache \
+    TRIVY_SKIP_VERSION_CHECK=true \
+    TRIVY_NO_PROGRESS=true
+
+WORKDIR /app
+
+# curl нужен только на сборке: скачивание релизов бинарников.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Процесс не должен работать от root. Домашний каталог нужен Semgrep для кеша
+# правил: без него запись в несуществующий HOME даёт предупреждения.
+RUN groupadd --gid 10001 app \
+    && useradd --uid 10001 --gid app --create-home --shell /usr/sbin/nologin app
+
+# Gitleaks и Trivy: закреплённые релизы, контрольная сумма по архитектуре.
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in \
+        amd64) \
+            gitleaks_asset="linux_x64"; \
+            gitleaks_sha="${GITLEAKS_SHA256_AMD64}"; \
+            trivy_asset="Linux-64bit"; \
+            trivy_sha="${TRIVY_SHA256_AMD64}" \
+            ;; \
+        arm64) \
+            gitleaks_asset="linux_arm64"; \
+            gitleaks_sha="${GITLEAKS_SHA256_ARM64}"; \
+            trivy_asset="Linux-ARM64"; \
+            trivy_sha="${TRIVY_SHA256_ARM64}" \
+            ;; \
+        *) \
+            echo "неподдерживаемая архитектура: $arch" >&2; \
+            exit 1 \
+            ;; \
+    esac; \
+    curl -fsSLo /tmp/gitleaks.tar.gz \
+        "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_${gitleaks_asset}.tar.gz"; \
+    echo "${gitleaks_sha}  /tmp/gitleaks.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks; \
+    curl -fsSLo /tmp/trivy.tar.gz \
+        "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_${trivy_asset}.tar.gz"; \
+    echo "${trivy_sha}  /tmp/trivy.tar.gz" | sha256sum -c -; \
+    tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy; \
+    chmod 0755 /usr/local/bin/gitleaks /usr/local/bin/trivy; \
+    rm -f /tmp/gitleaks.tar.gz /tmp/trivy.tar.gz; \
+    gitleaks --version; \
+    trivy --version
+
+# Semgrep — Python-пакет; отдельное окружение, чтобы его зависимости не
+# конфликтовали с зависимостями приложения.
+RUN uv venv --python 3.12 /opt/semgrep \
+    && uv pip install --python /opt/semgrep/bin/python "semgrep==${SEMGREP_VERSION}" \
+    && semgrep --version
+
+# База уязвимостей Trivy скачивается один раз при сборке. Рантайм работает с
+# --skip-db-update, поэтому обновление базы — это пересборка образа с новой
+# ревизией: изменение аргумента сбрасывает кеш только этого слоя.
+ARG TRIVY_DB_REVISION=2026-11-22
+RUN echo "база Trivy, ревизия ${TRIVY_DB_REVISION}" \
+    && trivy fs --download-db-only --cache-dir /opt/trivy-cache \
+    && chown -R app:app /opt/trivy-cache
+
+# Зависимости приложения отдельным слоем: пересобираются только при изменении
+# pyproject.toml или uv.lock.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
+
+COPY app ./app
+COPY templates ./templates
+COPY scanner-rules /opt/semgrep-rules
+RUN chmod -R a+rX /opt/semgrep-rules
+
+# Версии для ScannerRun.tool_version: Semgrep и Gitleaks не пишут их в SARIF,
+# а запускать --version в офлайне нельзя — Semgrep печатает версию, но не
+# завершается. Файл собирается из тех же ARG, что и установка инструментов.
+RUN printf '{"semgrep":"%s","gitleaks":"%s","trivy":"%s"}\n' \
+        "$SEMGREP_VERSION" "$GITLEAKS_VERSION" "$TRIVY_VERSION" \
+        > /opt/scanner-versions.json \
+    && chmod 0644 /opt/scanner-versions.json
+
+USER app
+
+CMD ["python", "-m", "app.worker.main"]
