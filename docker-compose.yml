@@ -1,10 +1,10 @@
-name: security-gate
+name: patches-please
 
 # Общие переменные для api и worker. Значения по умолчанию — только для локального
 # стенда; для демо-стенда они задаются в .env (см. .env.example).
 x-app-environment: &app-environment
   APP_ENV: ${APP_ENV:-local}
-  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://security_gate:security_gate_local@postgres:5432/security_gate}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://patches_please:patches_please_local@postgres:5432/patches_please}
   REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
 
 services:
@@ -12,15 +12,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-security_gate}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-security_gate_local}
-      POSTGRES_DB: ${POSTGRES_DB:-security_gate}
+      POSTGRES_USER: ${POSTGRES_USER:-patches_please}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-patches_please_local}
+      POSTGRES_DB: ${POSTGRES_DB:-patches_please}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-security_gate} -d ${POSTGRES_DB:-security_gate}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-patches_please} -d ${POSTGRES_DB:-patches_please}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -43,7 +43,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: security-gate-api:local
+    image: patches-please-api:local
     restart: unless-stopped
     init: true
     environment: *app-environment
@@ -70,11 +70,11 @@ services:
       context: .
       # Сканеры и их правила/базы живут только в образе worker (T-013).
       dockerfile: Dockerfile.worker
-    image: security-gate-worker:local
+    image: patches-please-worker:local
     restart: unless-stopped
     init: true
     stop_grace_period: 30s
-    command: ["python", "-m", "app.worker.main"]
+    command: ["python", "-m", "patches_please.worker.main"]
     environment: *app-environment
     depends_on:
       postgres:
@@ -87,7 +87,7 @@ services:
         - CMD
         - python
         - -c
-        - import os, sys; from redis import Redis; from rq import Queue, Worker; from app.worker.main import QUEUE_NAME; c = Redis.from_url(os.environ["REDIS_URL"]); sys.exit(0 if Worker.all(queue=Queue(QUEUE_NAME, connection=c), connection=c) else 1)
+        - import os, sys; from redis import Redis; from rq import Queue, Worker; from patches_please.worker.main import QUEUE_NAME; c = Redis.from_url(os.environ["REDIS_URL"]); sys.exit(0 if Worker.all(queue=Queue(QUEUE_NAME, connection=c), connection=c) else 1)
       interval: 15s
       timeout: 5s
       retries: 5

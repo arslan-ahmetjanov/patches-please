@@ -19,9 +19,9 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.auth import service
-from app.auth.models import User, UserSession
-from app.main import app, validation_error_handler
+from patches_please.auth import service
+from patches_please.auth.models import User, UserSession
+from patches_please.main import app, validation_error_handler
 
 
 def _create_user(session: Session, email: str, password: str) -> User:
@@ -356,7 +356,7 @@ def test_fr_022_login_page_shows_form(client: AppClient) -> None:
     body = response.text
     assert 'name="email"' in body
     assert 'name="password"' in body
-    assert "Вход в Security Gate" in body
+    assert "Вход в Patches, Please" in body
     assert "Пароль" in body
 
 

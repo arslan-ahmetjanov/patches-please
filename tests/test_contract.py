@@ -19,8 +19,8 @@ import pytest
 import yaml
 from conftest import AppClient
 
-from app.auth.service import SESSION_COOKIE_NAME
-from app.main import app
+from patches_please.auth.service import SESSION_COOKIE_NAME
+from patches_please.main import app
 
 CONTRACT_PATH = Path(__file__).resolve().parents[1] / "contracts" / "openapi.yaml"
 HTTP_METHODS = frozenset({"get", "put", "post", "delete", "options", "head", "patch", "trace"})

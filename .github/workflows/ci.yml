@@ -38,7 +38,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Типы
-        run: uv run mypy app
+        run: uv run mypy patches_please
 
       # Файл contracts/openapi.yaml — артефакт app.openapi(); шаг ловит
       # расхождение контракта с реализацией до прогона всех тестов.
@@ -58,20 +58,20 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_USER: security_gate
-          POSTGRES_PASSWORD: security_gate_local
-          POSTGRES_DB: security_gate
+          POSTGRES_USER: patches_please
+          POSTGRES_PASSWORD: patches_please_local
+          POSTGRES_DB: patches_please
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U security_gate -d security_gate"
+          --health-cmd "pg_isready -U patches_please -d patches_please"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     env:
       # Только учётные данные локального сервиса из этого job, секреты GitHub не нужны.
-      # Фикстуры заменяют имя базы на security_gate_test и применяют миграции сами.
-      DATABASE_URL: postgresql+psycopg://security_gate:security_gate_local@localhost:5432/security_gate
+      # Фикстуры заменяют имя базы на patches_please_test и применяют миграции сами.
+      DATABASE_URL: postgresql+psycopg://patches_please:patches_please_local@localhost:5432/patches_please
     steps:
       - name: Клонирование репозитория
         uses: actions/checkout@v7
@@ -86,7 +86,7 @@ jobs:
 
       - name: Миграции
         # Реальный путь из README: Alembic применяет миграции к базе сервиса.
-        # Тестовую базу security_gate_test мигрируют фикстуры при первом обращении.
+        # Тестовую базу patches_please_test мигрируют фикстуры при первом обращении.
         run: uv run alembic upgrade head
 
       - name: Интеграционные тесты

@@ -18,9 +18,9 @@ RUN groupadd --gid 10001 app \
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-COPY app ./app
+COPY patches_please ./patches_please
 COPY templates ./templates
 
 USER app
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "patches_please.main:app", "--host", "0.0.0.0", "--port", "8000"]

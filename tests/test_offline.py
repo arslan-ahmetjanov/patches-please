@@ -12,8 +12,8 @@ from typing import Any
 
 import pytest
 
-from app.scanners import offline
-from app.scanners.base import ScannerRun, ScannerStatus
+from patches_please.scanners import offline
+from patches_please.scanners.base import ScannerRun, ScannerStatus
 
 
 def _result(rule_id: str = "fixture.rule") -> dict[str, Any]:

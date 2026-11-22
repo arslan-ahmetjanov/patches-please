@@ -36,6 +36,6 @@ fmt:
 	uv run ruff format .
 
 type:
-	uv run mypy app
+	uv run mypy patches_please
 
 check: lint type test

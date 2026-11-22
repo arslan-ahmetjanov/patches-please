@@ -1,7 +1,7 @@
 [project]
-name = "security-gate"
+name = "patches-please"
 version = "0.1.0"
-description = "Security Gate — контроль безопасности разработки в CI/CD"
+description = "Patches, Please — контроль безопасности разработки в CI/CD"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -1,6 +1,6 @@
-# Security Gate
+# Patches, Please
 
-Информационная система автоматизированного контроля безопасности разработки (Security Gate) для CI/CD-конвейера: встраивается в пайплайн, запускает проверки, приводит находки к единой модели и блокирует переход релиза на следующий этап при критических уязвимостях.
+Информационная система автоматизированного контроля безопасности разработки (Patches, Please) для CI/CD-конвейера: встраивается в пайплайн, запускает проверки, приводит находки к единой модели и блокирует переход релиза на следующий этап при критических уязвимостях.
 
 Дипломный проект — ВКР по направлению 09.03.03 «Прикладная информатика», УГНТУ, группа БИЦз-22-01, 2026.
 
@@ -20,11 +20,11 @@
 
 - **Вход и сессии** — REST API и HTML-форма на одном сервисе, cookie-сессия, пароль хранится только хешем `scrypt`.
 - **Проекты** — объект проверки с изоляцией по членству: пользователь видит только проекты, где он участник.
-- **Токены CI** — ключи `sg_…` для пайплайнов: открытое значение показывается один раз, в базе лежит SHA-256, отзыв мягкий.
+- **Токены CI** — ключи `pp_…` для пайплайнов: открытое значение показывается один раз, в базе лежит SHA-256, отзыв мягкий.
 - **Прогоны** — `POST /api/v1/scans` с токеном проекта пишет прогон в очередь, `GET /api/v1/scans/{scan_id}` отдаёт статус для поллинга.
 - **Очередь и воркер** — Redis + RQ, отдельный процесс `worker`, healthcheck по регистрации обработчика в очереди.
 - **Миграции** — Alembic, четыре обратимые миграции: пользователи и сессии, проекты и членство, токены, прогоны.
-- **Спецификация** — разработка по SDD: `specs/security-gate-mvp` (спека, план, задачи с трассировкой к требованиям).
+- **Спецификация** — разработка по SDD: `specs/patches-please-mvp` (спека, план, задачи с трассировкой к требованиям).
 - **Контракт** — `contracts/openapi.yaml` генерируется из `app.openapi()`; тест сверяет файл с живым `/openapi.json`, сверка входит в CI (T-007).
 
 ## Стек
@@ -41,7 +41,7 @@
 ## Состав
 
 ```
-app/
+patches_please/
 ├── main.py            # точка входа api: роутеры, обработчики ошибок, /health
 ├── api.py             # сборка OpenAPI: схемы безопасности, ValidationError
 ├── db.py              # движок SQLAlchemy, фабрика сессий, база моделей
@@ -55,7 +55,7 @@ migrations/            # миграции схемы БД
 contracts/openapi.yaml # контракт REST API (артефакт app.openapi())
 scripts/               # служебные скрипты, экспорт OpenAPI
 specs/
-  security-gate-mvp/
+  patches-please-mvp/
     spec.md            # что и зачем, сценарии, требования, критерии приёмки
     plan.md            # архитектура, стек, данные, контракты, риски
     tasks.md           # задачи с трассировкой к требованиям
@@ -83,7 +83,7 @@ curl http://localhost:8000/health
 ## Вход в интерфейс
 
 Вход работает в двух видах на одном сервисе: REST API для программ и HTML-форма
-для браузера. Оба используют cookie-сессию `security_gate_session` (HttpOnly,
+для браузера. Оба используют cookie-сессию `pp_session` (HttpOnly,
 SameSite=Lax, Path=/, срок 7 дней).
 
 | Метод | Путь | Что делает |
@@ -134,13 +134,13 @@ Slug вводится вручную: строчные латинские бук
 | POST | `/api/v1/projects/{project_id}/tokens` | создаёт токен, отвечает 201 `{id, name, token, created_at}`; только `owner` |
 | DELETE | `/api/v1/projects/{project_id}/tokens/{token_id}` | отзывает токен, 204; повторный отзыв тоже 204; только `owner` |
 
-Формат токена — `sg_` и `secrets.token_urlsafe(32)`: префикс отличает токен
-Security Gate от прочих строк. Создавать и отзывать токены может владелец
+Формат токена — `pp_` и `secrets.token_urlsafe(32)`: префикс отличает токен
+Patches, Please от прочих строк. Создавать и отзывать токены может владелец
 проекта, участник (`member`) видит список без значений; посторонний получает 404,
 чтобы существование чужого проекта не раскрывалось. Проект в пути задаётся UUID.
 Страницы управления токенами пока нет: форма появится со страницей проекта
 (T-022) или настроек (T-024). Решение и требования —
-`specs/security-gate-mvp/delta-002-tokens.md`.
+`specs/patches-please-mvp/delta-002-tokens.md`.
 
 ## Прогоны
 
@@ -153,7 +153,7 @@ API с токеном проекта; отдельной логики под п�
 | POST | `/api/v1/scans` | JSON `{commit_sha, ref, provider}` → 202 с объектом прогона `{id, status, commit_sha, ref, provider, created_at, verdict}` и задача в очереди; без токена — 401 |
 | GET | `/api/v1/scans/{scan_id}` | статус прогона для поллинга; чужой или несуществующий — 404, без токена — 401 |
 
-Доступ — `Authorization: Bearer sg_...`: cookie-сессия интерфейса прогоны не
+Доступ — `Authorization: Bearer pp_...`: cookie-сессия интерфейса прогоны не
 открывает, она появится на чтении вместе со страницами (T-022, T-025).
 `provider` принимает `github` или `gitlab`, `commit_sha` — полный SHA-1 или
 SHA-256 в нижнем регистре, `ref` — Git ref без пробелов (`main`,
@@ -181,31 +181,31 @@ uv run pytest tests/test_contract.py         # сверить файл с при
 входит в job `quality` CI, поэтому расхождение видно до слияния.
 
 В контракте две схемы безопасности. `cookieAuth` — cookie-сессия
-`security_gate_session`; она требуется на операциях проектов и токенов.
-`bearerAuth` — токен проекта (`Authorization: Bearer sg_...`); он требуется
+`pp_session`; она требуется на операциях проектов и токенов.
+`bearerAuth` — токен проекта (`Authorization: Bearer pp_...`); он требуется
 на запуске прогона и поллинге статуса.
 Ответ 422 перечисляет только `type`, `loc` и `msg` — ровно то, что отдаёт
-обработчик в `app/main.py`; присланные значения в ответ не попадают.
+обработчик в `patches_please/main.py`; присланные значения в ответ не попадают.
 
 ## База данных и миграции
 
 Схема хранится в PostgreSQL 16, изменения — в миграциях Alembic. Строка подключения
 одна на всё: переменная `DATABASE_URL`. Контейнеры `api` и `worker` получают её из
 `docker-compose.yml` (хост `postgres`), а миграции с хоста запускаются без переменной
-и по умолчанию идут на `localhost:5432` — значение задано в `app/db.py`.
+и по умолчанию идут на `localhost:5432` — значение задано в `patches_please/db.py`.
 
 Если меняли пароль или порт PostgreSQL в `.env`, передайте `DATABASE_URL` и при
 миграциях с хоста:
 
 ```bash
 # bash, Git Bash, WSL
-DATABASE_URL=postgresql+psycopg://security_gate:пароль@localhost:5432/security_gate \
+DATABASE_URL=postgresql+psycopg://patches_please:пароль@localhost:5432/patches_please \
   uv run alembic upgrade head
 ```
 
 ```powershell
 # PowerShell
-$env:DATABASE_URL = "postgresql+psycopg://security_gate:пароль@localhost:5432/security_gate"
+$env:DATABASE_URL = "postgresql+psycopg://patches_please:пароль@localhost:5432/patches_please"
 uv run alembic upgrade head
 ```
 
@@ -237,7 +237,7 @@ uv run pytest -m "not integration"   # быстрые тесты, база не 
 uv run pytest -m integration         # нужен поднятый стек: docker compose up -d
 ```
 
-Интеграционные тесты работают с отдельной базой `security_gate_test`. Готовить её
+Интеграционные тесты работают с отдельной базой `patches_please_test`. Готовить её
 вручную не нужно: фикстуры `tests/conftest.py` создают базу при первом обращении,
 применяют миграции Alembic и откатывают изменения после каждого теста. Сервер и
 учётные данные берутся из `DATABASE_URL` (по умолчанию — локальный `localhost:5432`),
@@ -249,7 +249,7 @@ uv run pytest -m integration         # нужен поднятый стек: doc
 ```bash
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy app
+uv run mypy patches_please
 ```
 
 Короткие команды лежат в `Makefile`: `make up`, `make test`, `make lint`,
@@ -262,12 +262,12 @@ Job `quality` проверяет формат, линт, типы, контра�
 job `integration` поднимает `postgres:16` и гоняет интеграционные тесты (тестовую
 базу и миграции готовят фикстуры). Версия Python берётся из `.python-version`.
 Секреты GitHub не нужны: в workflow используется только локальный пароль
-сервисной базы `security_gate_local`.
+сервисной базы `patches_please_local`.
 
 ## Статус
 
 Спецификация V1 зафиксирована. Реализация идёт по этапам
-`specs/security-gate-mvp/tasks.md`.
+`specs/patches-please-mvp/tasks.md`.
 
 Сделано (T-001…T-013): скелет проекта, подключение к PostgreSQL и первая миграция,
 общие фикстуры тестов и CI, вход и выход с cookie-сессией, проекты с изоляцией по

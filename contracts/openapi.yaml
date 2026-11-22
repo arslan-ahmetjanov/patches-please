@@ -1,10 +1,10 @@
-# Контракт REST API Security Gate.
+# Контракт REST API Patches, Please.
 # Сгенерирован из app.openapi(); вручную не править.
 # Перегенерация: uv run python -m scripts.export_openapi
 # Сверка с приложением: uv run pytest tests/test_contract.py
 openapi: 3.1.0
 info:
-  title: Security Gate
+  title: Patches, Please
   description: Автоматизированный контроль безопасности разработки в CI/CD
   version: 0.1.0
 paths:
@@ -13,7 +13,7 @@ paths:
       tags:
       - аутентификация
       summary: Вход в интерфейс
-      description: 'Проверяет email и пароль, создаёт сессию браузера и ставит cookie `security_gate_session`.
+      description: 'Проверяет email и пароль, создаёт сессию браузера и ставит cookie `pp_session`.
 
 
         Неверный пароль и неизвестный email дают одинаковый ответ 401: наличие учётной записи не раскрывается.'
@@ -29,7 +29,7 @@ paths:
           description: Сессия создана, в Set-Cookie — токен сессии.
           headers:
             Set-Cookie:
-              description: 'Cookie `security_gate_session`: HttpOnly, SameSite=Lax, Path=/, срок жизни 7 дней.'
+              description: 'Cookie `pp_session`: HttpOnly, SameSite=Lax, Path=/, срок жизни 7 дней.'
               schema:
                 type: string
           content:
@@ -63,7 +63,7 @@ paths:
           description: Сессия закрыта, cookie очищена.
           headers:
             Set-Cookie:
-              description: Пустое значение `security_gate_session` с истёкшим сроком.
+              description: Пустое значение `pp_session` с истёкшим сроком.
               schema:
                 type: string
   /api/v1/projects:
@@ -302,7 +302,7 @@ paths:
       description: 'Создаёт прогон со статусом `queued` и ставит задачу в очередь; отвечает 202.
 
 
-        Доступ — токен проекта в заголовке `Authorization: Bearer sg_...`. Повторный запрос с тем же проектом и коммитом возвращает существующий прогон: второй строки и второй задачи не появляется. Провайдер (`github` или `gitlab`) записывается в историю, но на набор проверок и вердикт не влияет.'
+        Доступ — токен проекта в заголовке `Authorization: Bearer pp_...`. Повторный запрос с тем же проектом и коммитом возвращает существующий прогон: второй строки и второй задачи не появляется. Провайдер (`github` или `gitlab`) записывается в историю, но на набор проверок и вердикт не влияет.'
       operationId: api_start_scan_api_v1_scans_post
       parameters:
       - name: authorization
@@ -717,10 +717,10 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: security_gate_session
+      name: pp_session
       description: 'Cookie-сессия интерфейса: ставится `POST /api/v1/auth/login`, живёт 7 дней, HttpOnly, SameSite=Lax, Path=/.'
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: sg_<token>
-      description: 'Токен проекта для CI: `Authorization: Bearer sg_...`, выдаётся `POST /api/v1/projects/{project_id}/tokens`. Требуется методами прогонов: запуск и поллинг статуса.'
+      bearerFormat: pp_<token>
+      description: 'Токен проекта для CI: `Authorization: Bearer pp_...`, выдаётся `POST /api/v1/projects/{project_id}/tokens`. Требуется методами прогонов: запуск и поллинг статуса.'

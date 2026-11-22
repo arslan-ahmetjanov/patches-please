@@ -13,13 +13,13 @@ from pathlib import Path
 
 import yaml
 
-from app.main import app
+from patches_please.main import app
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACT_PATH = ROOT / "contracts" / "openapi.yaml"
 
 HEADER = """\
-# Контракт REST API Security Gate.
+# Контракт REST API Patches, Please.
 # Сгенерирован из app.openapi(); вручную не править.
 # Перегенерация: uv run python -m scripts.export_openapi
 # Сверка с приложением: uv run pytest tests/test_contract.py

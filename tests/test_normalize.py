@@ -12,10 +12,10 @@ from pathlib import Path
 
 import pytest
 
-from app.normalize.fingerprint import compute_fingerprint, deduplicate, normalize_snippet
-from app.normalize.model import Finding, FindingType, Severity
-from app.normalize.sarif import NormalizationError, normalize_run
-from app.scanners.base import ScannerRun, ScannerStatus
+from patches_please.normalize.fingerprint import compute_fingerprint, deduplicate, normalize_snippet
+from patches_please.normalize.model import Finding, FindingType, Severity
+from patches_please.normalize.sarif import NormalizationError, normalize_run
+from patches_please.scanners.base import ScannerRun, ScannerStatus
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

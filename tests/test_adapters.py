@@ -12,11 +12,11 @@ from typing import Any
 
 import pytest
 
-from app.scanners import process
-from app.scanners.base import ScannerRun, ScannerStatus
-from app.scanners.gitleaks import GitleaksAdapter
-from app.scanners.semgrep import SemgrepAdapter
-from app.scanners.trivy import TrivyAdapter
+from patches_please.scanners import process
+from patches_please.scanners.base import ScannerRun, ScannerStatus
+from patches_please.scanners.gitleaks import GitleaksAdapter
+from patches_please.scanners.semgrep import SemgrepAdapter
+from patches_please.scanners.trivy import TrivyAdapter
 
 AdapterFactory = Callable[[], SemgrepAdapter | GitleaksAdapter | TrivyAdapter]
 

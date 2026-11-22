@@ -9,7 +9,7 @@ HTTP-тесты идут в приложение через ASGI-транспо�
 подменяет зависимость `get_db` на тестовую сессию, а `client` остаётся без базы:
 healthcheck и валидация входных данных работают и без неё.
 
-Интеграционным тестам нужна отдельная база `security_gate_test`. Фикстуры
+Интеграционным тестам нужна отдельная база `patches_please_test`. Фикстуры
 создают её при первом обращении, применяют миграции Alembic и откатывают
 изменения после каждого теста. Из `DATABASE_URL` берутся только сервер и
 учётные данные, имя базы подменяется на тестовое — база стенда не затрагивается.
@@ -32,12 +32,12 @@ from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 from starlette.types import ASGIApp
 
-from app.db import database_url, get_db
-from app.main import app
+from patches_please.db import database_url, get_db
+from patches_please.main import app
 
 ROOT = Path(__file__).resolve().parent.parent
 ALEMBIC_INI = ROOT / "alembic.ini"
-TEST_DATABASE_NAME = "security_gate_test"
+TEST_DATABASE_NAME = "patches_please_test"
 
 
 class AppClient:
@@ -48,7 +48,7 @@ class AppClient:
     забывает их, когда нужен анонимный запрос.
     """
 
-    def __init__(self, asgi_app: ASGIApp, base_url: str = "http://security-gate") -> None:
+    def __init__(self, asgi_app: ASGIApp, base_url: str = "http://patches-please") -> None:
         self._app = asgi_app
         self._base_url = base_url
         self.cookies = httpx.Cookies()
@@ -118,7 +118,7 @@ def db_client(db_session: Session) -> Iterator[AppClient]:
 def _environment_database_url(url: URL) -> Iterator[None]:
     """Подставляет URL базы в окружение на время миграций и восстанавливает прежнее значение.
 
-    Alembic читает строку подключения из `app.db.database_url()`, поэтому иначе
+    Alembic читает строку подключения из `patches_please.db.database_url()`, поэтому иначе
     `command.upgrade` применил бы миграции к базе стенда.
     """
     previous = os.environ.get("DATABASE_URL")
@@ -152,7 +152,7 @@ def _create_database(url: URL) -> None:
 
 @pytest.fixture(scope="session")
 def test_db_url() -> URL:
-    """URL тестовой базы: сервер из `DATABASE_URL`, база — `security_gate_test`."""
+    """URL тестовой базы: сервер из `DATABASE_URL`, база — `patches_please_test`."""
     override = os.environ.get("TEST_DATABASE_URL")
     if override:
         return make_url(override)

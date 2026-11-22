@@ -4,15 +4,15 @@
 
 ## Проект
 
-Security Gate — информационная система автоматизированного контроля безопасности разработки для CI/CD. Дипломный проект (ВКР, 09.03.03 «Прикладная информатика», УГНТУ).
+Patches, Please — информационная система автоматизированного контроля безопасности разработки для CI/CD. Дипломный проект (ВКР, 09.03.03 «Прикладная информатика», УГНТУ).
 
-Репозиторий: `arslan-ahmetjanov/security-gate`, публичный.
+Репозиторий: `arslan-ahmetjanov/patches-please`, публичный.
 
 ## Процесс: SDD
 
 Спецификация — источник правды, код — её следствие.
 
-1. Перед любой работой прочитай `specs/security-gate-mvp/spec.md`, `plan.md` и `tasks.md` целиком.
+1. Перед любой работой прочитай `specs/patches-please-mvp/spec.md`, `plan.md` и `tasks.md` целиком.
 2. Любое изменение поведения начинается с правки спецификации, а не с кода. Изменение после выпуска — через delta-спеку.
 3. Бери задачи по порядку из `tasks.md`. Задача без ID требования не выполняется.
 4. Код и спецификация расходятся — остановись и спроси. Молча подгонять спеку под код запрещено.
@@ -21,12 +21,12 @@ Security Gate — информационная система автоматиз
 ## Структура
 
 ```
-app/                     # api, worker, scanners, normalize, policy, reports, web
-specs/security-gate-mvp/ # спека, план, задачи
-contracts/               # OpenAPI и схемы
-tests/                   # pytest, фикстуры SARIF
-docs/                    # инструкции, замеры, лицензии
-demo/                    # демо-репозиторий с внедрёнными уязвимостями
+patches_please/           # api, worker, scanners, normalize, policy, reports, web
+specs/patches-please-mvp/ # спека, план, задачи
+contracts/                # OpenAPI и схемы
+tests/                    # pytest, фикстуры SARIF
+docs/                     # инструкции, замеры, лицензии
+demo/                     # демо-репозиторий с внедрёнными уязвимостями
 ```
 
 ## Стек
@@ -41,7 +41,7 @@ Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.0 + Alembic, PostgreSQL 16, Redi
 - `uv run pytest -m "not integration"` — быстрые тесты
 - `uv run pytest -m integration` — тесты с БД
 - `uv run ruff check .` / `uv run ruff format .` — линт и формат
-- `uv run mypy app` — типы
+- `uv run mypy patches_please` — типы
 
 ## Соглашения
 

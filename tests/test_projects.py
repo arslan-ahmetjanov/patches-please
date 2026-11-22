@@ -14,11 +14,11 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import service
-from app.auth.models import User
-from app.main import app
-from app.projects.models import OWNER_ROLE, ProjectMember
-from app.projects.router import SLUG_TAKEN_MESSAGE, ProjectCreate
+from patches_please.auth import service
+from patches_please.auth.models import User
+from patches_please.main import app
+from patches_please.projects.models import OWNER_ROLE, ProjectMember
+from patches_please.projects.router import SLUG_TAKEN_MESSAGE, ProjectCreate
 
 PASSWORD = "пароль-123"
 

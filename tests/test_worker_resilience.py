@@ -18,21 +18,21 @@ from rq import Callback
 from rq.timeouts import JobTimeoutException
 from sqlalchemy.orm import Session
 
-from app.projects.models import Project
-from app.scans.models import Scan
-from app.scans.queue import (
+from patches_please.projects.models import Project
+from patches_please.scans.models import Scan
+from patches_please.scans.queue import (
     FAILURE_CALLBACK,
     SCAN_JOB_TIMEOUT_SEC,
     enqueue_scan,
     handle_scan_failure,
     process_scan,
 )
-from app.scans.service import ScanStatus, mark_done, mark_running
-from app.worker.main import INTERRUPTED_REASON, recover_interrupted_scans
+from patches_please.scans.service import ScanStatus, mark_done, mark_running
+from patches_please.worker.main import INTERRUPTED_REASON, recover_interrupted_scans
 
 SHA = "b" * 40
-QUEUE_LOGGER = "app.scans.queue"
-WORKER_LOGGER = "app.worker.main"
+QUEUE_LOGGER = "patches_please.scans.queue"
+WORKER_LOGGER = "patches_please.worker.main"
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -289,12 +289,12 @@ def test_fr_027_recovery_logs_scan_id(
 def test_fr_027_worker_registers_project_table() -> None:
     """Воркер без импорта API-приложения разрешает внешний ключ `scans.project_id`.
 
-    Проверка идёт в отдельном процессе: в тестовом процессе `app.main` уже
+    Проверка идёт в отдельном процессе: в тестовом процессе `patches_please.main` уже
     импортирован и зарегистрировал все таблицы, поэтому регрессию не увидеть.
     """
     code = (
-        "import app.worker.main\n"
-        "from app.db import Base\n"
+        "import patches_please.worker.main\n"
+        "from patches_please.db import Base\n"
         "assert 'projects' in Base.metadata.tables, sorted(Base.metadata.tables)\n"
     )
     result = subprocess.run(

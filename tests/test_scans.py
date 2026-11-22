@@ -19,18 +19,18 @@ from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import service as auth_service
-from app.auth.models import User
-from app.main import app
-from app.scans.models import Scan
-from app.scans.queue import enqueue_scan, get_scan_queue, process_scan
-from app.scans.router import (
+from patches_please.auth import service as auth_service
+from patches_please.auth.models import User
+from patches_please.main import app
+from patches_please.scans.models import Scan
+from patches_please.scans.queue import enqueue_scan, get_scan_queue, process_scan
+from patches_please.scans.router import (
     SCAN_NOT_FOUND_MESSAGE,
     TOKEN_REQUIRED_MESSAGE,
     Provider,
     ScanCreate,
 )
-from app.tokens import service as tokens_service
+from patches_please.tokens import service as tokens_service
 
 PASSWORD = "пароль-123"
 # Полные хеши: SHA-1 у GitHub и GitLab по умолчанию, SHA-256 — у репозиториев нового типа.
@@ -373,7 +373,7 @@ def test_fr_001_missing_token_returns_401(
 def test_fr_001_unknown_token_returns_401(db_client: AppClient, db_session: Session) -> None:
     """Неизвестное значение токена не отличается от отсутствующего."""
     response = AppClient(app).post(
-        "/api/v1/scans", json=_scan_payload(), headers=_bearer("sg_unknown_token")
+        "/api/v1/scans", json=_scan_payload(), headers=_bearer("pp_unknown_token")
     )
 
     assert response.status_code == 401

@@ -44,7 +44,7 @@ Semgrep использует его для кеша. `docker.sock` в образ
 ## Команды запуска
 
 Адаптеры вызывают инструменты списком аргументов, без `shell=True`
-(`app/scanners/process.py`). Содержимое stdout/stderr не читается и не пишется в
+(`patches_please/scanners/process.py`). Содержимое stdout/stderr не читается и не пишется в
 лог: оно может содержать секреты (NFR-004).
 
 | Сканер | Команда |
@@ -98,11 +98,11 @@ FR-028) передаётся каждому адаптеру; по истече�
 хранилище базы Trivy.
 
 ```bash
-docker build -f Dockerfile.worker -t security-gate-worker:local .
+docker build -f Dockerfile.worker -t patches-please-worker:local .
 docker run --rm --network none \
   -v "$PWD/tests/fixtures/scanner-repo:/src:ro" \
-  security-gate-worker:local \
-  python -m app.scanners.offline \
+  patches-please-worker:local \
+  python -m patches_please.scanners.offline \
   --workdir /src --output /tmp/artifacts --require-findings
 ```
 
@@ -131,7 +131,7 @@ docker run --rm --network none \
 3. **База Trivy.** Обновляется при пересборке: изменить `ARG TRIVY_DB_REVISION`
    (дата) и собрать образ заново — сбросится кеш только слоя с базой. Дата базы
    проверяется в контейнере:
-   `docker run --rm security-gate-worker:local cat /opt/trivy-cache/db/metadata.json`.
+   `docker run --rm patches-please-worker:local cat /opt/trivy-cache/db/metadata.json`.
 4. **Дата фиксации.** После обновления версий или базы обновить таблицу
    «Состав» и дату в этом документе.
 
@@ -156,8 +156,8 @@ docker run --rm --network none \
 uv run pytest tests/test_process.py tests/test_adapters.py tests/test_offline.py
 docker run --rm --network none \
   -v "$PWD/tests/fixtures/scanner-repo:/src:ro" \
-  security-gate-worker:local \
-  python -m app.scanners.offline --workdir /src --output /tmp/artifacts --require-findings
+  patches-please-worker:local \
+  python -m patches_please.scanners.offline --workdir /src --output /tmp/artifacts --require-findings
 ```
 
 Тесты покрывают команды, коды возврата, таймаут, отказ запуска, отсутствующий и

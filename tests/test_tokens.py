@@ -19,13 +19,13 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.auth import service as auth_service
-from app.auth.models import User
-from app.main import app
-from app.projects.models import MEMBER_ROLE, ProjectMember
-from app.tokens import service
-from app.tokens.models import ProjectToken
-from app.tokens.router import (
+from patches_please.auth import service as auth_service
+from patches_please.auth.models import User
+from patches_please.main import app
+from patches_please.projects.models import MEMBER_ROLE, ProjectMember
+from patches_please.tokens import service
+from patches_please.tokens.models import ProjectToken
+from patches_please.tokens.router import (
     FORBIDDEN_MESSAGE,
     PROJECT_NOT_FOUND_MESSAGE,
     TOKEN_NOT_FOUND_MESSAGE,
@@ -67,12 +67,12 @@ def _create_token(client: AppClient, project_id: uuid.UUID, name: str = "GitHub 
 
 
 def test_fr_024_token_has_prefix_and_expected_length() -> None:
-    """`sg_` + token_urlsafe(32): 3 + 43 символа."""
+    """`pp_` + token_urlsafe(32): 3 + 43 символа."""
     token = service.generate_token()
 
-    assert token.startswith("sg_")
-    assert len(token) == len("sg_") + 43
-    assert re.fullmatch(r"sg_[A-Za-z0-9_-]{43}", token)
+    assert token.startswith("pp_")
+    assert len(token) == len("pp_") + 43
+    assert re.fullmatch(r"pp_[A-Za-z0-9_-]{43}", token)
 
 
 def test_fr_024_generated_tokens_are_unique() -> None:
@@ -84,7 +84,7 @@ def test_fr_024_generated_tokens_are_unique() -> None:
 
 def test_fr_024_hash_is_sha256_hex_without_salt() -> None:
     """В базе ровно SHA-256 в hex: хеш детерминирован и совпадает с hashlib."""
-    token = "sg_проверка"
+    token = "pp_проверка"
 
     digest = auth_service.token_hash(token)
 
@@ -131,7 +131,7 @@ def test_fr_024_create_returns_token_once_and_stores_only_hash(
     body = _create_token(db_client, project_id, "GitHub Actions")
 
     assert set(body) == {"id", "name", "token", "created_at"}
-    assert body["token"].startswith("sg_")
+    assert body["token"].startswith("pp_")
     assert body["name"] == "GitHub Actions"
     assert uuid.UUID(body["id"]) and body["created_at"]
 
@@ -196,19 +196,19 @@ def test_fr_024_list_orders_newest_first_and_by_name_on_equal_time(
             ProjectToken(
                 project_id=project_id,
                 name="Бета",
-                token_hash=auth_service.token_hash("sg_бета"),
+                token_hash=auth_service.token_hash("pp_бета"),
                 created_at=same_time,
             ),
             ProjectToken(
                 project_id=project_id,
                 name="Альфа",
-                token_hash=auth_service.token_hash("sg_альфа"),
+                token_hash=auth_service.token_hash("pp_альфа"),
                 created_at=same_time,
             ),
             ProjectToken(
                 project_id=project_id,
                 name="Старый",
-                token_hash=auth_service.token_hash("sg_старый"),
+                token_hash=auth_service.token_hash("pp_старый"),
                 created_at=older,
             ),
         ]
@@ -437,4 +437,4 @@ def test_fr_024_verify_token_updates_last_used_at(
 
     assert stored is not None
     assert stored.last_used_at is not None
-    assert service.verify_token(db_session, "sg_неизвестный") is None
+    assert service.verify_token(db_session, "pp_неизвестный") is None

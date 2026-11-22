@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from app.scanners import process
+from patches_please.scanners import process
 
 
 def test_fr_030_success_returns_exit_code() -> None:
@@ -50,7 +50,7 @@ def test_fr_030_timeout_terminates_process() -> None:
 
 def test_fr_030_missing_binary_is_launch_failure() -> None:
     """Отсутствующий бинарник — результат `launch_failed`, а не исключение."""
-    outcome = process.run_process(["security-gate-missing-scanner"], 1.0)
+    outcome = process.run_process(["patches-please-missing-scanner"], 1.0)
 
     assert outcome.launch_failed
     assert not outcome.timed_out

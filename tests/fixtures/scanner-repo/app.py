@@ -9,7 +9,7 @@ import pickle
 import subprocess
 
 # Вымышленный секрет: не настоящий ключ, добавлен только для проверки Gitleaks.
-API_TOKEN = "sg_fixture_9f3K2mQ7vR4pX8tZ"
+API_TOKEN = "pp_fixture_9f3K2mQ7vR4pX8tZ"
 
 
 def run_command(command: str) -> str:

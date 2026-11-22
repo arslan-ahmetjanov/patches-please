@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from app.scanners.base import ScannerAdapter, ScannerRun, ScannerStatus
-from app.scanners.runner import DEFAULT_SCANNER_TIMEOUT_SEC, run_scanners
-from app.scans.queue import SCAN_JOB_TIMEOUT_SEC
+from patches_please.scanners.base import ScannerAdapter, ScannerRun, ScannerStatus
+from patches_please.scanners.runner import DEFAULT_SCANNER_TIMEOUT_SEC, run_scanners
+from patches_please.scans.queue import SCAN_JOB_TIMEOUT_SEC
 
 
 def _ok_run(name: str, output_dir: Path, tool_version: str | None = "1.0") -> ScannerRun:
@@ -141,7 +141,7 @@ def test_fr_028_exception_becomes_failed_result_without_exception_text(
         RaisingAdapter("gitleaks", RuntimeError("токен ghp_оченьсекретный")),
     ]
 
-    with caplog.at_level(logging.WARNING, logger="app.scanners.runner"):
+    with caplog.at_level(logging.WARNING, logger="patches_please.scanners.runner"):
         runs = run_scanners(adapters, tmp_path, tmp_path / "artifacts")
 
     run = runs[0]

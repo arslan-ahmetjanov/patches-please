@@ -91,7 +91,7 @@ RUN echo "база Trivy, ревизия ${TRIVY_DB_REVISION}" \
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev
 
-COPY app ./app
+COPY patches_please ./patches_please
 COPY templates ./templates
 COPY scanner-rules /opt/semgrep-rules
 RUN chmod -R a+rX /opt/semgrep-rules
@@ -106,4 +106,4 @@ RUN printf '{"semgrep":"%s","gitleaks":"%s","trivy":"%s"}\n' \
 
 USER app
 
-CMD ["python", "-m", "app.worker.main"]
+CMD ["python", "-m", "patches_please.worker.main"]

@@ -1,6 +1,6 @@
 """Схема в PostgreSQL: таблицы миграции, сохранность строк и откат тестовой сессии.
 
-Интеграционные тесты работают с отдельной базой `security_gate_test`: фикстуры
+Интеграционные тесты работают с отдельной базой `patches_please_test`: фикстуры
 создают её, применяют миграции и откатывают изменения после каждого теста.
 Нужен запущенный стек (`docker compose up -d`): `uv run pytest -m integration`.
 """
@@ -11,7 +11,7 @@ import pytest
 from sqlalchemy import Engine, create_engine, delete, inspect, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.auth.models import User
+from patches_please.auth.models import User
 
 pytestmark = pytest.mark.integration
 

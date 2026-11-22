@@ -1,6 +1,6 @@
 """Окружение Alembic.
 
-Строка подключения не хранится в alembic.ini: её отдаёт `app.db.database_url()`,
+Строка подключения не хранится в alembic.ini: её отдаёт `patches_please.db.database_url()`,
 поэтому контейнеры и миграции с хоста используют один и тот же DATABASE_URL.
 Метаданные берутся из моделей, чтобы автогенерация видела все таблицы.
 """
@@ -11,11 +11,11 @@ from typing import Any, TextIO
 from alembic import context
 from sqlalchemy import Connection
 
-from app import db
-from app.auth import models  # noqa: F401 — регистрирует таблицы в Base.metadata
-from app.projects import models as project_models  # noqa: F401 — то же для projects
-from app.scans import models as scan_models  # noqa: F401 — то же для scans
-from app.tokens import models as token_models  # noqa: F401 — то же для project_tokens
+from patches_please import db
+from patches_please.auth import models  # noqa: F401 — регистрирует таблицы в Base.metadata
+from patches_please.projects import models as project_models  # noqa: F401 — то же для projects
+from patches_please.scans import models as scan_models  # noqa: F401 — то же для scans
+from patches_please.tokens import models as token_models  # noqa: F401 — то же для project_tokens
 
 config = context.config
 target_metadata = db.Base.metadata

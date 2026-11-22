@@ -14,10 +14,10 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.orm import Session
 
-from app.projects.models import Project
-from app.scans.models import Scan
-from app.scans.queue import process_scan
-from app.scans.service import (
+from patches_please.projects.models import Project
+from patches_please.scans.models import Scan
+from patches_please.scans.queue import process_scan
+from patches_please.scans.service import (
     ALLOWED_TRANSITIONS,
     ScanStatus,
     ScanTransitionError,
@@ -28,7 +28,7 @@ from app.scans.service import (
 )
 
 SHA = "a" * 40
-QUEUE_LOGGER = "app.scans.queue"
+QUEUE_LOGGER = "patches_please.scans.queue"
 
 # Все пары статусов, которых нет в матрице переходов: каждая должна отклоняться.
 INVALID_TRANSITIONS = [
