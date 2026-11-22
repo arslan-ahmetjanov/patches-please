@@ -1,6 +1,7 @@
 # Задачи: Security Gate — V1
 
-Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения.
+Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения,
+кроме T-034…T-037: они добавлены позже и идут первыми (см. «Порядок и сроки»).
 
 Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004);
 [delta-002-tokens.md](delta-002-tokens.md) — FR-024, FR-025 (T-006);
@@ -8,7 +9,11 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 [delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010);
 [delta-005-scanner-runner.md](delta-005-scanner-runner.md) — FR-028 (T-011);
 [delta-006-findings.md](delta-006-findings.md) — FR-029 (T-012);
-[delta-007-scanners.md](delta-007-scanners.md) — FR-030 (T-013).
+[delta-007-scanners.md](delta-007-scanners.md) — FR-030 (T-013);
+[delta-008-cli.md](delta-008-cli.md) — FR-031…FR-037, NFR-007 (T-036).
+
+Пустой ID требования допускается только у T-034, T-035 и T-037: они меняют
+имена, упаковку и оформление, а поведение системы не меняется.
 
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
@@ -37,14 +42,18 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-023 | FR-003, FR-018 | `templates/scan.html`, `tests/test_web_scan.py` | Страница прогона: находки с фильтрами по severity и состоянию, проверка прав | `uv run pytest tests/test_web_scan.py` | чужой проект отдаёт 403, фильтры работают |
 | T-024 | FR-014, FR-011 | `templates/settings.html`, `templates/policy_form.html`, `tests/test_web_settings.py` | Формы политики и исключений с валидацией полей, CSRF-токены и secure-cookie для HTTPS | `uv run pytest tests/test_web_settings.py` | форма без причины не сохраняется |
 | T-025 | FR-018 | `app/auth/permissions.py`, `tests/test_permissions.py` | Единая проверка прав на проект для API и страниц | `uv run pytest tests/test_permissions.py` | все точки доступа покрыты, 403 без утечки данных |
-| T-026 | FR-019, FR-020, FR-021 | `.github/actions/security-gate/action.yml`, `.github/workflows/demo-scan.yml`, `docs/ci-github.md` | Композитный action: старт, поллинг, код выхода; демо-воркфлоу | реальный прогон в GitHub | job падает при `fail` и проходит при `pass` |
-| T-027 | FR-019, FR-020, FR-021 | `ci/gitlab/security-gate.yml`, `.gitlab-ci.yml`, `docs/ci-gitlab.md` | Шаблон job для GitLab, инструкция, локальная проверка | `gitlab-ci-local` | пайплайн валиден и проходит локально |
+| T-026 | FR-019, FR-020, FR-021, FR-033 | `.github/actions/patches-please/action.yml`, `.github/workflows/demo-scan.yml`, `docs/ci-github.md` | Композитный action: установка CLI и один вызов `patches-please scan --wait`; проброс кода выхода; демо-воркфлоу | реальный прогон в GitHub | job падает при `fail` и проходит при `pass`; поллинга в самом action нет |
+| T-027 | FR-019, FR-020, FR-021, FR-033 | `ci/gitlab/patches-please.yml`, `.gitlab-ci.yml`, `docs/ci-gitlab.md` | Шаблон job для GitLab на том же клиенте, инструкция, локальная проверка | `gitlab-ci-local` | пайплайн валиден и проходит локально; шаблон не дублирует поллинг |
 | T-028 | FR-019 | `tests/test_parity.py` | Один коммит через два провайдера даёт одинаковый вердикт и набор проверок | `uv run pytest tests/test_parity.py` | вердикты и число находок совпадают |
 | T-029 | NFR-001 | `tests/load/k6.js`, `docs/measurements.md` | Нагрузочный замер API, фиксация p95 | `k6 run tests/load/k6.js` | p95 ≤ 300 мс при 20 RPS, результат записан |
 | T-030 | NFR-002 | `scripts/measure_scan.py`, `docs/measurements.md` | Замер прогона на репозитории до 100 тыс. строк, три повтора | `uv run python scripts/measure_scan.py` | максимум ≤ 10 минут, цифры записаны |
 | T-031 | CON-001 | `docs/licenses.md`, `README.md` | Список лицензий сканеров и зависимостей, проверка разрешительности | ревью таблицы лицензий | все лицензии разрешительные, таблица в репозитории |
 | T-032 | CON-003 | `demo/README.md`, `scripts/seed_demo.py`, `docs/demo.md` | Демо-репозиторий с внедрёнными уязвимостями и секретами, без данных работодателя | прогон на демо | находятся все три класса находок, запрещённых данных нет |
 | T-033 | NFR-006, CON-004 | `docs/runbook.md`, `README.md` | Инструкция развёртывания с нуля на русском, хронометраж; предусловия: установка `uv` и запуск Docker Desktop | чистая машина, замер по инструкции | развёртывание ≤ 30 минут |
+| T-034 | — | `pyproject.toml`, `uv.lock`, `docker-compose.yml`, `.env.example`, `app/` → `patches_please/`, `contracts/openapi.yaml`, `scripts/export_openapi.py`, `templates/`, `tests/`, `README.md`, `AGENTS.md`, `docs/`, `specs/` | Переименование продукта в «Patches, Please»: бренд в текстах, `app/` → `patches_please/`, cookie `pp_session`, префикс токена `pp_`, БД `patches_please*`, очередь и образы `patches-please` | `uv run pytest`, `uv run mypy patches_please`, `uv run ruff check .`, `uv run python scripts/export_openapi.py`, `docker compose up -d` с пустого volume | в коде и документации нет `security-gate`/`security_gate`, кроме цитаты названия запроса в `docs/source-request.md` и истории git; стек поднимается с нуля |
+| T-035 | — | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
+| T-036 | FR-031…FR-037, NFR-007 | `patches_please/cli.py`, `pyproject.toml` (`[project.scripts]`, `httpx` в зависимостях), `tests/test_cli.py`, `docs/ci-github.md` | Клиент: аргументы, старт прогона, ожидание с таймаутом, таблица кодов выхода, `--json`, повторы на `5xx`, маскирование токена | `uv run pytest tests/test_cli.py` | код 0 при `pass`, 1 при `fail`, коды 2–6 различимы, токен не попадает ни в stdout, ни в stderr |
+| T-037 | CON-004 | `docs/brand.md`, `templates/static/brand.css`, `templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
 
 ## Трассировка
 
@@ -68,8 +77,8 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-016 | T-014 | `tests/test_baseline.py` |
 | FR-017 | T-005 | `tests/test_projects.py` |
 | FR-018 | T-023, T-025 | `tests/test_permissions.py`, `tests/test_web_scan.py` |
-| FR-019 | T-008, T-026, T-027, T-028 | `tests/test_scans.py`, `tests/test_parity.py`, демо-пайплайны |
-| FR-020 | T-026, T-027 | GitHub demo-воркфлоу, `gitlab-ci-local` |
+| FR-019 | T-008, T-026, T-027, T-028, T-036 | `tests/test_scans.py`, `tests/test_cli.py`, `tests/test_parity.py`, демо-пайплайны |
+| FR-020 | T-026, T-027, T-036 | `tests/test_cli.py` (`test_fr_033_*`), GitHub demo-воркфлоу, `gitlab-ci-local` |
 | FR-021 | T-026, T-027 | `docs/ci-github.md`, `docs/ci-gitlab.md` |
 | FR-022 | T-004 | `tests/test_auth.py` (`test_fr_022_*`) |
 | FR-023 | T-004 | `tests/test_auth.py` (`test_fr_023_*`) |
@@ -80,12 +89,20 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-028 | T-011 | `tests/test_runner.py` (`test_fr_028_*`) |
 | FR-029 | T-012 | `tests/test_normalize.py` (`test_fr_029_*`) |
 | FR-030 | T-013 | `tests/test_process.py`, `tests/test_adapters.py`, `tests/test_offline.py` (`test_fr_030_*`) |
+| FR-031 | T-036 | `tests/test_cli.py` (`test_fr_031_*`) |
+| FR-032 | T-036 | `tests/test_cli.py` (`test_fr_032_*`) |
+| FR-033 | T-036, T-026, T-027 | `tests/test_cli.py` (`test_fr_033_*`), прогон в GitHub |
+| FR-034 | T-036 | `tests/test_cli.py` (`test_fr_034_*`) |
+| FR-035 | T-036 | `tests/test_cli.py` (`test_fr_035_*`) |
+| FR-036 | T-036 | `tests/test_cli.py` (`test_fr_036_*`) |
+| FR-037 | T-036, T-028 | `tests/test_cli.py` (`test_fr_037_*`), `tests/test_parity.py` |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
 | NFR-003 | T-013 | офлайн-прогон на тестовом репозитории, `docs/scanners.md` |
 | NFR-004 | T-021 | `tests/test_masking.py` |
 | NFR-005 | T-002 | перезапуск стека, история на месте |
 | NFR-006 | T-033 | `docs/runbook.md` |
+| NFR-007 | T-036 | `tests/test_cli.py` (`test_nfr_007_*`) |
 | CON-001 | T-031 | `docs/licenses.md` |
 | CON-002 | T-001 | `docker compose up` |
 | CON-003 | T-032 | прогон на демо, ревью данных |
@@ -96,6 +113,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 
 | Этап | Задачи | Оценка |
 | --- | --- | --- |
+| 0. Ребрендинг и упаковка | T-034, T-035 | 1 день |
 | 1. Скелет | T-001…T-003 | 3 дня |
 | 2. Проекты и доступ | T-004…T-007 | 4 дня |
 | 3. Прогон и очередь | T-008…T-010 | 4 дня |
@@ -103,8 +121,13 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | 5. Baseline и исключения | T-014, T-015 | 3 дня |
 | 6. Метрики, политика, вердикт | T-016…T-019 | 4 дня |
 | 7. Отчёты | T-020, T-021 | 3 дня |
-| 8. Интерфейс | T-022…T-025 | 5 дней |
-| 9. CI-интеграции | T-026…T-028 | 4 дня |
+| 8. Интерфейс | T-022…T-025, T-037 | 6 дней |
+| 9. Клиент и CI-интеграции | T-036, T-026…T-028 | 6 дней |
 | 10. Замеры и документация | T-029…T-033 | 4 дня |
 
-Итого около 8 недель работы плюс две недели буфера на текст ВКР и правки. Защита в феврале — запас есть.
+Итого около 8,5 недель работы плюс две недели буфера на текст ВКР и правки.
+Защита в феврале — запас есть.
+
+T-034 идёт после T-013: переименование каталога `app/` задевает файлы, которые
+создаёт задача по сканерам. Пока они не закоммичены, переименование делается
+один раз и без конфликтов слияния.
