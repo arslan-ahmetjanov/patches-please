@@ -5,7 +5,8 @@
 Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004);
 [delta-002-tokens.md](delta-002-tokens.md) — FR-024, FR-025 (T-006);
 [delta-003-status.md](delta-003-status.md) — FR-026 (T-009);
-[delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010).
+[delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010);
+[delta-005-scanner-runner.md](delta-005-scanner-runner.md) — FR-028 (T-011).
 
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
@@ -19,7 +20,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-008 | FR-001, FR-007, FR-019 | `app/scans/router.py`, `app/scans/models.py`, `app/scans/queue.py`, `tests/test_scans.py` | `POST /scans` с токеном и `provider`, запись прогона, очередь, поллинг статуса | `uv run pytest tests/test_scans.py` | два провайдера создают прогоны одинаковой структуры |
 | T-009 | FR-026 | `app/scans/service.py`, `app/scans/queue.py`, `tests/test_status.py` | Машина состояний прогона: `queued → running → done/error`, время начала и завершения, причина ошибки; воркер переводит `queued → running` | `uv run pytest tests/test_status.py` | недопустимые переходы отклоняются, `started_at`/`finished_at` заполняются один раз |
 | T-010 | FR-027 | `app/worker/main.py`, `app/scans/queue.py`, `tests/test_worker_resilience.py` | Обработка падения и таймаута задачи, рестарт worker без потери истории | `uv run pytest -m integration` | после рестарта прогон либо `done`, либо `error`, но не висит |
-| T-011 | FR-002 | `app/scanners/base.py`, `app/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
+| T-011 | FR-028 | `app/scanners/base.py`, `app/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
 | T-012 | FR-003 | `app/normalize/model.py`, `app/normalize/sarif.py`, `app/normalize/fingerprint.py`, `tests/fixtures/*.sarif` | Нормализация SARIF, fingerprint, дедупликация внутри прогона | `uv run pytest tests/test_normalize.py` | все обязательные поля заполнены, дубли схлопнуты |
 | T-013 | FR-002, NFR-003 | `Dockerfile.worker`, `app/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на демо-репозитории | три сканера дают SARIF без доступа в интернет |
 | T-014 | FR-006, FR-016 | `app/policy/baseline.py`, `app/policy/classify.py`, `tests/test_baseline.py` | Установка baseline, сравнение, метки `new`/`existing`/`fixed` | `uv run pytest tests/test_baseline.py` | сценарий S-003 проходит на данных |
@@ -48,7 +49,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | Требование | Задачи | Тесты |
 | --- | --- | --- |
 | FR-001 | T-008 | `tests/test_scans.py` |
-| FR-002 | T-011, T-013 | `tests/test_runner.py`, `docs/scanners.md` |
+| FR-002 | T-013 | `docs/scanners.md` |
 | FR-003 | T-012, T-023 | `tests/test_normalize.py`, `tests/test_web_scan.py` |
 | FR-004 | T-017 | `tests/test_policy.py` |
 | FR-005 | T-018 | `tests/test_blocking.py` |
@@ -74,6 +75,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-025 | T-006 | `tests/test_tokens.py` (`test_fr_025_*`) |
 | FR-026 | T-009 | `tests/test_status.py` (`test_fr_026_*`) |
 | FR-027 | T-010 | `tests/test_worker_resilience.py` (`test_fr_027_*`) |
+| FR-028 | T-011 | `tests/test_runner.py` (`test_fr_028_*`) |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
 | NFR-003 | T-013 | офлайн-прогон на демо |
