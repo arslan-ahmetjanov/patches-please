@@ -36,7 +36,7 @@ def test_t_002_single_head() -> None:
     """В репозитории ровно одна голова: миграции линейны и применяются по порядку."""
     heads = ScriptDirectory.from_config(_config()).get_heads()
 
-    assert heads == ["0003"]
+    assert heads == ["0004"]
 
 
 def test_t_002_upgrade_creates_users_and_sessions() -> None:
@@ -80,5 +80,38 @@ def test_t_006_downgrade_drops_project_tokens_after_index() -> None:
 
     index_drop = sql.index("DROP INDEX ix_project_tokens_project_id")
     table_drop = sql.index("DROP TABLE project_tokens")
+    projects_drop = sql.index("DROP TABLE projects")
+    assert index_drop < table_drop < projects_drop
+
+
+def test_t_008_upgrade_creates_scans() -> None:
+    """Четвёртая миграция добавляет прогоны: поля FR-007, каскад и индекс истории."""
+    sql = _offline_sql("upgrade", "head")
+
+    assert "CREATE TABLE scans" in sql
+    for column in (
+        "project_id",
+        "commit_sha",
+        "ref",
+        "provider",
+        "status",
+        "verdict",
+        "created_at",
+        "started_at",
+        "finished_at",
+    ):
+        assert column in sql
+    assert "status VARCHAR(20) DEFAULT 'queued' NOT NULL" in sql
+    assert "ON DELETE CASCADE" in sql
+    assert "CREATE INDEX ix_scans_project_id_started_at ON scans" in sql
+    assert "started_at DESC" in sql
+
+
+def test_t_008_downgrade_drops_scans_after_index() -> None:
+    """Downgrade удаляет индекс раньше таблицы и не задевает projects."""
+    sql = _offline_sql("downgrade", "head:base")
+
+    index_drop = sql.index("DROP INDEX ix_scans_project_id_started_at")
+    table_drop = sql.index("DROP TABLE scans")
     projects_drop = sql.index("DROP TABLE projects")
     assert index_drop < table_drop < projects_drop

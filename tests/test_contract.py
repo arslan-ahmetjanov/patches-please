@@ -34,6 +34,11 @@ COOKIE_PROTECTED = {
     ("post", "/api/v1/projects/{project_id}/tokens"),
     ("delete", "/api/v1/projects/{project_id}/tokens/{token_id}"),
 }
+# Операции прогонов: CI приходит с токеном проекта (T-008).
+BEARER_PROTECTED = {
+    ("post", "/api/v1/scans"),
+    ("get", "/api/v1/scans/{scan_id}"),
+}
 PUBLIC_OPERATIONS = {
     ("get", "/health"),
     ("post", "/api/v1/auth/login"),
@@ -172,7 +177,7 @@ def test_fr_009_schema_is_structurally_valid(contract: dict[str, Any]) -> None:
 
 
 def test_fr_009_security_schemes_describe_real_behaviour(contract: dict[str, Any]) -> None:
-    """Cookie-схема стоит там, где сессия действительно требуется; Bearer пока объявлен."""
+    """Cookie стоит там, где нужна сессия; Bearer — там, где нужен токен CI."""
     schemes = contract["components"]["securitySchemes"]
     cookie = schemes["cookieAuth"]
     assert cookie["type"] == "apiKey"
@@ -188,17 +193,14 @@ def test_fr_009_security_schemes_describe_real_behaviour(contract: dict[str, Any
         for path, method, operation in _operations(contract)
         if "security" in operation
     }
-    assert secured == COOKIE_PROTECTED
+    assert secured == COOKIE_PROTECTED | BEARER_PROTECTED
     for method, path in COOKIE_PROTECTED:
         assert _operation(contract, method, path)["security"] == [{"cookieAuth": []}]
+    for method, path in BEARER_PROTECTED:
+        assert _operation(contract, method, path)["security"] == [{"bearerAuth": []}]
 
     for method, path in PUBLIC_OPERATIONS:
         assert "security" not in _operation(contract, method, path)
-
-    # Проверки Bearer в запросах ещё нет (T-008): ни одна операция его не требует.
-    for _, _, operation in _operations(contract):
-        for requirement in operation.get("security", []):
-            assert "bearerAuth" not in requirement
 
 
 def test_fr_009_validation_error_schema_matches_handler(client: AppClient) -> None:

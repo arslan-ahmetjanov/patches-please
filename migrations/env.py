@@ -14,6 +14,7 @@ from sqlalchemy import Connection
 from app import db
 from app.auth import models  # noqa: F401 — регистрирует таблицы в Base.metadata
 from app.projects import models as project_models  # noqa: F401 — то же для projects
+from app.scans import models as scan_models  # noqa: F401 — то же для scans
 from app.tokens import models as token_models  # noqa: F401 — то же для project_tokens
 
 config = context.config

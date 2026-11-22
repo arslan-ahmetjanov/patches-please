@@ -17,6 +17,7 @@ from app.auth.router import api_router as auth_api_router
 from app.auth.router import html_router as auth_html_router
 from app.projects.router import api_router as projects_api_router
 from app.projects.router import html_router as projects_html_router
+from app.scans.router import api_router as scans_api_router
 from app.tokens.router import api_router as tokens_api_router
 
 app = FastAPI(
@@ -34,6 +35,7 @@ app.include_router(auth_html_router)
 app.include_router(projects_api_router)
 app.include_router(projects_html_router)
 app.include_router(tokens_api_router)
+app.include_router(scans_api_router)
 
 
 @app.exception_handler(LoginRequiredError)

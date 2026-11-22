@@ -294,6 +294,105 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
       security:
       - cookieAuth: []
+  /api/v1/scans:
+    post:
+      tags:
+      - прогоны
+      summary: Запустить прогон
+      description: 'Создаёт прогон со статусом `queued` и ставит задачу в очередь; отвечает 202.
+
+
+        Доступ — токен проекта в заголовке `Authorization: Bearer sg_...`. Повторный запрос с тем же проектом и коммитом возвращает существующий прогон: второй строки и второй задачи не появляется. Провайдер (`github` или `gitlab`) записывается в историю, но на набор проверок и вердикт не влияет.'
+      operationId: api_start_scan_api_v1_scans_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanCreate'
+      responses:
+        '202':
+          description: 'Прогон принят: строка создана или найдена, задача поставлена.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+        '401':
+          description: Токен отсутствует, неизвестен или отозван.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - bearerAuth: []
+  /api/v1/scans/{scan_id}:
+    get:
+      tags:
+      - прогоны
+      summary: Статус прогона
+      description: 'Возвращает статус прогона, коммит, ветку, провайдера, время создания и вердикт. CI поллит этот метод и завершает job по вердикту.
+
+
+        Доступ — токен проекта, которым запускался прогон. Прогон другого проекта и несуществующий идентификатор выглядят одинаково — 404.'
+      operationId: api_get_scan_api_v1_scans__scan_id__get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      responses:
+        '200':
+          description: Прогон этого проекта.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResponse'
+        '401':
+          description: Токен отсутствует, неизвестен или отозван.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Прогон не найден или принадлежит другому проекту.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - bearerAuth: []
   /health:
     get:
       tags:
@@ -425,6 +524,78 @@ components:
       - created_at
       title: ProjectResponse
       description: Проект в ответе API.
+    Provider:
+      type: string
+      enum:
+      - github
+      - gitlab
+      title: Provider
+      description: CI-провайдер, из которого пришёл запуск. На проверку не влияет (FR-019).
+    ScanCreate:
+      properties:
+        commit_sha:
+          type: string
+          pattern: ^[0-9a-f]{40}(?:[0-9a-f]{24})?$
+          title: Commit Sha
+        ref:
+          type: string
+          maxLength: 255
+          minLength: 1
+          pattern: ^\S+$
+          title: Ref
+        provider:
+          $ref: '#/components/schemas/Provider'
+      type: object
+      required:
+      - commit_sha
+      - ref
+      - provider
+      title: ScanCreate
+      description: 'Запуск прогона: что именно проверять. Провайдер — только для истории.'
+    ScanResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        commit_sha:
+          type: string
+          title: Commit Sha
+        ref:
+          type: string
+          title: Ref
+        provider:
+          $ref: '#/components/schemas/Provider'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        verdict:
+          anyOf:
+          - $ref: '#/components/schemas/Verdict'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - status
+      - commit_sha
+      - ref
+      - provider
+      - created_at
+      - verdict
+      title: ScanResponse
+      description: 'Прогон в ответе API: одинаковый набор полей у POST и GET.'
+    ScanStatus:
+      type: string
+      enum:
+      - queued
+      - running
+      - done
+      - error
+      title: ScanStatus
+      description: 'Статусы прогона из плана: переходы по ним вводит T-009.'
     TokenCreate:
       properties:
         name:
@@ -535,6 +706,13 @@ components:
       - msg
       - type
       title: ValidationError
+    Verdict:
+      type: string
+      enum:
+      - pass
+      - fail
+      title: Verdict
+      description: Вердикт по политике проекта (FR-004); до T-017 остаётся `null`.
   securitySchemes:
     cookieAuth:
       type: apiKey
@@ -545,4 +723,4 @@ components:
       type: http
       scheme: bearer
       bearerFormat: sg_<token>
-      description: 'Токен проекта для CI: `Authorization: Bearer sg_...`, выдаётся `POST /api/v1/projects/{project_id}/tokens`. Проверка токена и привязка схемы к операциям прогонов появятся в T-008; сейчас ни один путь её не требует.'
+      description: 'Токен проекта для CI: `Authorization: Bearer sg_...`, выдаётся `POST /api/v1/projects/{project_id}/tokens`. Требуется методами прогонов: запуск и поллинг статуса.'

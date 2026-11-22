@@ -30,6 +30,12 @@ COOKIE_PROTECTED_OPERATIONS: Final = (
     ("delete", "/api/v1/projects/{project_id}/tokens/{token_id}"),
 )
 
+# Операции прогонов: CI приходит с токеном проекта, сессии у него нет (T-008).
+BEARER_PROTECTED_OPERATIONS: Final = (
+    ("post", "/api/v1/scans"),
+    ("get", "/api/v1/scans/{scan_id}"),
+)
+
 SECURITY_SCHEMES: Final[dict[str, dict[str, Any]]] = {
     COOKIE_SCHEME: {
         "type": "apiKey",
@@ -46,9 +52,8 @@ SECURITY_SCHEMES: Final[dict[str, dict[str, Any]]] = {
         "bearerFormat": "sg_<token>",
         "description": (
             "Токен проекта для CI: `Authorization: Bearer sg_...`, выдаётся "
-            "`POST /api/v1/projects/{project_id}/tokens`. Проверка токена и "
-            "привязка схемы к операциям прогонов появятся в T-008; сейчас ни один "
-            "путь её не требует."
+            "`POST /api/v1/projects/{project_id}/tokens`. Требуется методами "
+            "прогонов: запуск и поллинг статуса."
         ),
     },
 }
@@ -77,16 +82,21 @@ def _drop_unused_validation_fields(schema: dict[str, Any]) -> None:
 
 
 def _add_security(schema: dict[str, Any]) -> None:
-    """Объявляет схемы безопасности и вешает `cookieAuth` на защищённые операции."""
+    """Объявляет схемы безопасности и вешает их на защищённые операции."""
     components = schema.setdefault("components", {})
     components["securitySchemes"] = SECURITY_SCHEMES
     paths = schema.get("paths")
     if not isinstance(paths, dict):
         return
-    for method, path in COOKIE_PROTECTED_OPERATIONS:
-        operation = paths.get(path, {}).get(method)
-        if isinstance(operation, dict):
-            operation["security"] = [{COOKIE_SCHEME: []}]
+    protected = (
+        (COOKIE_SCHEME, COOKIE_PROTECTED_OPERATIONS),
+        (BEARER_SCHEME, BEARER_PROTECTED_OPERATIONS),
+    )
+    for scheme, operations in protected:
+        for method, path in operations:
+            operation = paths.get(path, {}).get(method)
+            if isinstance(operation, dict):
+                operation["security"] = [{scheme: []}]
 
 
 def build_openapi_schema(app: FastAPI) -> dict[str, Any]:
