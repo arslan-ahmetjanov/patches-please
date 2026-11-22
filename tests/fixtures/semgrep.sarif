@@ -1,0 +1,66 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "semgrep",
+          "informationUri": "https://semgrep.dev",
+          "version": "1.90.0",
+          "rules": [
+            { "id": "python.lang.security.audit.eval-detected" },
+            { "id": "python.lang.security.audit.hardcoded-password" }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "python.lang.security.audit.eval-detected",
+          "level": "error",
+          "message": { "text": "Вызов eval с пользовательским вводом" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/app.py" },
+                "region": {
+                  "startLine": 10,
+                  "snippet": { "text": "result = eval(user_input)" }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "python.lang.security.audit.eval-detected",
+          "level": "error",
+          "message": { "text": "Вызов eval с пользовательским вводом" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/app.py" },
+                "region": {
+                  "startLine": 42,
+                  "snippet": { "text": "result = eval(user_input)" }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "python.lang.security.audit.hardcoded-password",
+          "level": "warning",
+          "message": { "text": "Пароль задан прямо в исходном коде" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/settings.py" },
+                "region": { "startLine": 3 }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

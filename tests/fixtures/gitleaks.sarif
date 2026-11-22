@@ -1,0 +1,32 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "gitleaks",
+          "informationUri": "https://gitleaks.io",
+          "version": "8.21.0",
+          "rules": [{ "id": "aws-access-token" }]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "aws-access-token",
+          "level": "error",
+          "message": {
+            "text": "Найден ключ доступа AWS: AKIAIOSFODNN7EXAMPLE"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "config/credentials.example" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

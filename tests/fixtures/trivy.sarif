@@ -1,0 +1,54 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "trivy",
+          "informationUri": "https://trivy.dev",
+          "version": "0.58.0",
+          "rules": [
+            { "id": "CVE-2023-12345" },
+            { "id": "CVE-2023-54321" }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2023-12345",
+          "level": "error",
+          "message": { "text": "Уязвимость в requests 2.0.0" },
+          "properties": { "severity": "CRITICAL" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "requirements.txt" },
+                "region": {
+                  "startLine": 1,
+                  "snippet": { "text": "requests==2.0.0" }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "ruleId": "CVE-2023-54321",
+          "level": "none",
+          "message": { "text": "Уязвимость в flask 1.0.0" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "requirements.txt" },
+                "region": {
+                  "startLine": 2,
+                  "snippet": { "text": "flask==1.0.0" }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
