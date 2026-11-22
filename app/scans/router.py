@@ -8,8 +8,8 @@ CI вызывает `POST /api/v1/scans` с Bearer-токеном проекта
 
 Повторный запрос с тем же проектом и коммитом возвращает существующий прогон:
 второй строки и второй задачи не появляется (план, «Лимиты»). Гонка двух
-одновременных запросов на этом шаге не закрывается уникальным индексом: лимит
-«один активный прогон на проект» относится к машине состояний T-009.
+одновременных запросов уникальным индексом не закрыта: лимит «один активный
+прогон на проект» — изменение схемы БД и отдельная задача после T-009.
 
 Обе операции требуют токен проекта. Cookie-сессия для чтения прогона появится
 вместе со страницами (T-022, T-025) — контракт не обещает её раньше.
@@ -31,6 +31,7 @@ from app.auth.router import ErrorResponse
 from app.scans import queue as scan_queue
 from app.scans.models import Scan
 from app.scans.queue import get_scan_queue
+from app.scans.service import ScanStatus
 from app.tokens.models import ProjectToken
 from app.tokens.service import verify_token
 
@@ -55,15 +56,6 @@ class Provider(StrEnum):
 
     GITHUB = "github"
     GITLAB = "gitlab"
-
-
-class ScanStatus(StrEnum):
-    """Статусы прогона из плана: переходы по ним вводит T-009."""
-
-    QUEUED = "queued"
-    RUNNING = "running"
-    DONE = "done"
-    ERROR = "error"
 
 
 class Verdict(StrEnum):

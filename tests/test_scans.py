@@ -1,15 +1,15 @@
 """Прогоны: приём, очередь, поллинг статуса (T-008, FR-001, FR-007, FR-019).
 
 Быстрые тесты проверяют валидацию полей запуска и обвязку очереди: задача
-ставится с идентификатором прогона, обработчик не меняет статус. Интеграционные
-идут через API на тестовой базе с fake-очередью: Redis ради проверки постановки
-задачи не нужен, `app.dependency_overrides` подменяет `get_scan_queue`.
+ставится с идентификатором прогона. Жизненный цикл статусов и задача воркера —
+в `tests/test_status.py` (T-009, FR-026). Интеграционные тесты идут через API
+на тестовой базе с fake-очередью: Redis ради проверки постановки задачи не
+нужен, `app.dependency_overrides` подменяет `get_scan_queue`.
 
 Токен проекта — единственный ключ доступа к прогонам в T-008: cookie-сессия
 операции не открывает, чужой прогон не отличается от несуществующего.
 """
 
-import logging
 import uuid
 from collections.abc import Iterator
 
@@ -185,18 +185,6 @@ def test_fr_001_enqueue_passes_scan_id_as_string() -> None:
     enqueue_scan(queue, scan_id)
 
     assert queue.calls == [(process_scan, str(scan_id))]
-
-
-def test_fr_001_job_logs_scan_and_leaves_status_to_later_tasks(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """В T-008 задача только фиксирует приём: статус меняет T-009."""
-    scan_id = str(uuid.uuid4())
-
-    with caplog.at_level(logging.INFO):
-        assert process_scan(scan_id) is None
-
-    assert caplog.records[-1].scan_id == scan_id
 
 
 # --- API: создание прогона -------------------------------------------------------
