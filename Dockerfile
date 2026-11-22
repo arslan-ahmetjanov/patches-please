@@ -16,10 +16,13 @@ RUN groupadd --gid 10001 app \
 
 # Зависимости отдельным слоем: пересобираются только при изменении pyproject.toml или uv.lock.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
+# Метаданные пакета: hatchling читает README и лицензию при сборке wheel.
+COPY README.md LICENSE ./
+# Пакет ставится в окружение после копирования: шаблоны и миграции лежат внутри него.
 COPY patches_please ./patches_please
-COPY templates ./templates
+RUN uv sync --frozen --no-dev
 
 USER app
 

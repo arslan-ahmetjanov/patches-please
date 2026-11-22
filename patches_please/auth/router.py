@@ -18,8 +18,9 @@ from sqlalchemy.orm import Session
 from patches_please.auth import service
 from patches_please.db import get_db
 
-# Шаблоны лежат в корне репозитория, рядом с patches_please/: отсюда это два уровня вверх.
-TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
+# Шаблоны лежат внутри пакета, в patches_please/templates: отсюда это один уровень вверх.
+# Такой путь работает и из исходников, и из установленного wheel.
+TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 
 # Зависимость алиасом: аннотации читаются короче, а вызов Depends не попадает
 # в значения по умолчанию (ruff B008).

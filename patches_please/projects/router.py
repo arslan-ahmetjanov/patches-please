@@ -24,8 +24,9 @@ from patches_please.auth.models import User
 from patches_please.auth.router import ErrorResponse
 from patches_please.projects.models import OWNER_ROLE, Project, ProjectMember
 
-# Шаблоны лежат в корне репозитория, рядом с patches_please/: отсюда это два уровня вверх.
-TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
+# Шаблоны лежат внутри пакета, в patches_please/templates: отсюда это один уровень вверх.
+# Такой путь работает и из исходников, и из установленного wheel.
+TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
 
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 

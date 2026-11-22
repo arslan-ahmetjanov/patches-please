@@ -49,17 +49,17 @@ patches_please/
 ├── projects/          # проекты, членство, изоляция видимости
 ├── tokens/            # токены CI: создание, показ один раз, отзыв
 ├── scans/             # прогоны: приём, очередь, поллинг статуса
+├── templates/         # страницы Jinja2: вход и список проектов
+├── migrations/        # миграции схемы БД (env.py, версии)
 └── worker/main.py     # обработчик очереди RQ
 alembic.ini            # конфигурация Alembic
-migrations/            # миграции схемы БД
 contracts/openapi.yaml # контракт REST API (артефакт app.openapi())
-scripts/               # служебные скрипты, экспорт OpenAPI
+scripts/               # служебные скрипты: экспорт OpenAPI, проверка wheel
 specs/
   patches-please-mvp/
     spec.md            # что и зачем, сценарии, требования, критерии приёмки
     plan.md            # архитектура, стек, данные, контракты, риски
     tasks.md           # задачи с трассировкой к требованиям
-templates/             # страницы входа и списка проектов
 tests/                 # pytest
 docs/                  # источник темы, заметки для следующей сессии
 ```
@@ -218,7 +218,7 @@ uv run alembic downgrade -1   # откатить одну миграцию
 uv run alembic check          # модели и схема БД не расходятся
 ```
 
-Первая миграция `migrations/versions/0001_users_sessions.py` создаёт таблицы `users`
+Первая миграция `patches_please/migrations/versions/0001_users_sessions.py` создаёт таблицы `users`
 и `sessions` по разделу «Данные и контракты» плана, вторая
 `0002_projects_members.py` — `projects` и `project_members` (T-005), третья
 `0003_project_tokens.py` — `project_tokens` (T-006). Все обратимы:

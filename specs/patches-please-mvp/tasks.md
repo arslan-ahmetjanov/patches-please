@@ -15,6 +15,10 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 Пустой ID требования допускается только у T-034, T-035 и T-037: они меняют
 имена, упаковку и оформление, а поведение системы не меняется.
 
+С T-035 шаблоны и миграции лежат внутри пакета — `patches_please/templates/`
+и `patches_please/migrations/`. В списках файлов выполненных задач ниже пути
+указаны на момент их постановки.
+
 | ID | Требование | Файлы | Что сделать | Проверка | Готово когда |
 | --- | --- | --- | --- | --- | --- |
 | T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `patches_please/main.py`, `patches_please/worker/main.py`, `Makefile`, `.env.example`, `pyproject.toml`, `contracts/openapi.yaml` | Compose с postgres, redis, api, worker; healthcheck; каркас `pyproject.toml` с pytest, ruff, mypy; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
@@ -53,7 +57,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-034 | — | `pyproject.toml`, `uv.lock`, `docker-compose.yml`, `.env.example`, `app/` → `patches_please/`, `contracts/openapi.yaml`, `scripts/export_openapi.py`, `templates/`, `tests/`, `README.md`, `AGENTS.md`, `docs/`, `specs/` | Переименование продукта в «Patches, Please»: бренд в текстах, `app/` → `patches_please/`, cookie `pp_session`, префикс токена `pp_`, БД `patches_please*`, очередь и образы `patches-please` | `uv run pytest`, `uv run mypy patches_please`, `uv run ruff check .`, `uv run python -m scripts.export_openapi`, `docker compose up -d` с пустого volume | старого имени продукта нет в коде и документации, кроме цитаты названия запроса в `docs/source-request.md` и истории git; стек поднимается с нуля |
 | T-035 | — | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
 | T-036 | FR-031…FR-037, NFR-007 | `patches_please/cli.py`, `pyproject.toml` (`[project.scripts]`, `httpx` в зависимостях), `tests/test_cli.py`, `docs/ci-github.md` | Клиент: аргументы, старт прогона, ожидание с таймаутом, таблица кодов выхода, `--json`, повторы на `5xx`, маскирование токена | `uv run pytest tests/test_cli.py` | код 0 при `pass`, 1 при `fail`, коды 2–6 различимы, токен не попадает ни в stdout, ни в stderr |
-| T-037 | CON-004 | `docs/brand.md`, `templates/static/brand.css`, `templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
+| T-037 | CON-004 | `docs/brand.md`, `patches_please/templates/static/brand.css`, `patches_please/templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
 
 ## Трассировка
 
