@@ -28,9 +28,10 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# curl нужен только на сборке: скачивание релизов бинарников.
+# curl нужен на сборке — скачивание релизов бинарников; git — в рантайме:
+# конвейер клонирует репозиторий проекта и переключается на нужный коммит (T-038).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
+    && apt-get install -y --no-install-recommends curl git \
     && rm -rf /var/lib/apt/lists/*
 
 # Процесс не должен работать от root. Домашний каталог нужен Semgrep для кеша

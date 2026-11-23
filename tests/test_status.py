@@ -78,6 +78,11 @@ def _unused_scope() -> AbstractContextManager[Session]:
     raise AssertionError("сессия не должна открываться")
 
 
+def _skip_pipeline(scan_id: str, **kwargs: object) -> None:
+    """Заглушка конвейера T-038: проверки статусов не клонируют и не сканируют."""
+    del scan_id, kwargs
+
+
 # --- Допустимые переходы ---------------------------------------------------------
 
 
@@ -212,7 +217,7 @@ def test_fr_026_process_scan_starts_queued_run(
 
     before = datetime.now(UTC)
     with caplog.at_level(logging.INFO, logger=QUEUE_LOGGER):
-        process_scan(str(scan.id), lambda: nullcontext(db_session))
+        process_scan(str(scan.id), lambda: nullcontext(db_session), _skip_pipeline)
     after = datetime.now(UTC)
 
     assert scan.status == ScanStatus.RUNNING
@@ -230,7 +235,7 @@ def test_fr_026_process_scan_keeps_time_on_repeat(
 ) -> None:
     """Повторная доставка задачи не перезаписывает время начала."""
     scan = _scan(db_session)
-    process_scan(str(scan.id), lambda: nullcontext(db_session))
+    process_scan(str(scan.id), lambda: nullcontext(db_session), _skip_pipeline)
     started = scan.started_at
 
     with caplog.at_level(logging.WARNING, logger=QUEUE_LOGGER):

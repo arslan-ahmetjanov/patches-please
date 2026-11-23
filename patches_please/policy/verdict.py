@@ -17,8 +17,8 @@
 `apply_exceptions` проставляет `findings.excluded` по действующим исключениям
 проекта, `save_verdict` пишет `scans.verdict` — по образцу `save_metrics` из
 `patches_please/metrics/service.py`: расчёт отдельно, запись отдельно.
-Встраивание в обработку прогона — оркестрация воркера (T-038), здесь только
-расчёт и запись.
+Необязательный список запусков сканеров передаёт расчёт через режим отказа
+(T-019): конвейер воркера (T-038) вызывает `save_verdict` уже после сканеров.
 
 `Verdict` объявлен в этом модуле: имя компонента контракта (`Verdict`) не
 меняется, а роутер прогонов импортирует его отсюда.
@@ -38,6 +38,7 @@ from patches_please.normalize.model import Finding, FindingType, Severity
 from patches_please.policy.classify import FindingState
 from patches_please.policy.exceptions import active_exceptions, is_excluded
 from patches_please.policy.models import Policy
+from patches_please.scanners.base import ScannerRun
 from patches_please.scans.models import FindingRecord, Scan
 from patches_please.scans.service import ScanStatus
 
@@ -186,19 +187,33 @@ def compute_verdict(
     return Verdict.PASS
 
 
-def save_verdict(session: Session, scan: Scan) -> Verdict:
+def save_verdict(
+    session: Session,
+    scan: Scan,
+    runs: Iterable[ScannerRun] | None = None,
+) -> Verdict:
     """Считает вердикт прогона по политике проекта и пишет его в `scans.verdict`.
 
     Прогон обязан быть `done`: по незавершённому набор находок неполон, как
-    и у метрик (T-016). Повторный вызов даёт тот же вердикт: пороги и находки
-    к этому моменту не меняются. Изменения фиксируются.
+    и у метрик (T-016). С `runs` вердикт считается с учётом деградации проверок
+    (`verdict_with_degradation`, T-019): при fail-closed неполная проверка даёт
+    `fail`. Без `runs` поведение прежнее — только находки. Повторный вызов даёт
+    тот же вердикт: пороги и находки к этому моменту не меняются. Изменения
+    фиксируются.
     """
     if ScanStatus(scan.status) is not ScanStatus.DONE:
         raise PolicyError(
             f"Вердикт выносится только по завершённому прогону, а он в статусе {scan.status}"
         )
     policy = load_policy(session, scan.project_id)
-    verdict = compute_verdict(_scan_findings(session, scan), policy.block_severities)
+    records = _scan_findings(session, scan)
+    if runs is None:
+        verdict = compute_verdict(records, policy.block_severities)
+    else:
+        # Локальный импорт: `degraded` уже импортирует этот модуль, иначе цикл.
+        from patches_please.policy.degraded import verdict_with_degradation
+
+        verdict = verdict_with_degradation(records, policy, runs)
     scan.verdict = str(verdict)
     session.commit()
     return verdict

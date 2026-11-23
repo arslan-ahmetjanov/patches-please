@@ -1,18 +1,20 @@
-"""Очередь прогонов: постановка задачи, её приём и разбор сбоя (T-008…T-010).
+"""Очередь прогонов: постановка задачи, её приём и разбор сбоя (T-008…T-010, T-038).
 
 API проверку не выполняет: оно пишет строку `scans` и ставит задачу в очередь
 `patches-please`, а работу забирает процесс `worker`. Идентификатор прогона
 уходит аргументом-строкой, чтобы задача пережила сериализацию в Redis.
 
 Приём задачи переводит прогон `queued → running` (FR-026): с этого момента
-`started_at` заполнен, а CI видит, что проверка началась. Предельное время
-задачи — `SCAN_JOB_TIMEOUT_SEC` по NFR-002; по истечении RQ прерывает задачу
-исключением `JobTimeoutException`. Сбой задачи, таймаут и гибель воркера
-переводят прогон в `error` с причиной и временем завершения (FR-027):
-исключение и таймаут ловит `handle_scan_failure`, а прогоны, пережившие
-перезапуск воркера, завершает `patches_please.worker.main.recover_interrupted_scans`.
-Повторная доставка задачи статус не ломает: обработчик пишет предупреждение и
-оставляет прогон как есть.
+`started_at` заполнен, а CI видит, что проверка началась. Затем тот же обработчик
+запускает конвейер (T-038): клон коммита, сканеры, находки, метрики и вердикт.
+Предельное время задачи — `SCAN_JOB_TIMEOUT_SEC` по NFR-002; по истечении RQ
+прерывает задачу исключением `JobTimeoutException`. Сбой задачи, таймаут и
+гибель воркера переводят прогон в `error` с причиной и временем завершения
+(FR-027): исключение и таймаут ловит `handle_scan_failure`, а прогоны,
+пережившие перезапуск воркера, завершает
+`patches_please.worker.main.recover_interrupted_scans`. Повторная доставка
+задачи статус не ломает: обработчик пишет предупреждение и оставляет прогон
+как есть.
 """
 
 import logging
@@ -32,6 +34,7 @@ from sqlalchemy.orm import Session
 
 from patches_please.db import SessionLocal
 from patches_please.scans.models import Scan
+from patches_please.scans.pipeline import ScanPipeline, execute_scan
 from patches_please.scans.service import ScanTransitionError, mark_error, mark_running
 from patches_please.worker.main import DEFAULT_REDIS_URL, QUEUE_NAME
 
@@ -82,12 +85,19 @@ def enqueue_scan(queue: Queue, scan_id: uuid.UUID) -> None:
     )
 
 
-def process_scan(scan_id: str, session_scope: SessionScope = SessionLocal) -> None:
-    """Приём задачи воркером: прогон переходит `queued → running` (FR-026).
+def process_scan(
+    scan_id: str,
+    session_scope: SessionScope = SessionLocal,
+    pipeline: ScanPipeline | None = None,
+) -> None:
+    """Приём задачи воркером: `queued → running`, затем конвейер прогона (FR-026, T-038).
 
     Сессию открывает сам воркер; тесты передают область с тестовой сессией,
-    чтобы не ходить в базу стенда. Неизвестный прогон и повторная доставка не
-    считаются ошибкой задачи: статус уже не `queued`, менять нечего.
+    чтобы не ходить в базу стенда. `pipeline` — точка подмены: по умолчанию
+    запускается боевой конвейер, тесты статусов передают заглушку, чтобы не
+    клонировать репозиторий и не запускать сканеры. Неизвестный прогон и
+    повторная доставка не считаются ошибкой задачи: статус уже не `queued`,
+    менять нечего.
     """
     try:
         scan_uuid = uuid.UUID(scan_id)
@@ -105,6 +115,8 @@ def process_scan(scan_id: str, session_scope: SessionScope = SessionLocal) -> No
             logger.warning("статус прогона не изменён: %s", exc, extra={"scan_id": scan_id})
             return
     logger.info("прогон принят воркером", extra={"scan_id": scan_id})
+    handler = pipeline if pipeline is not None else execute_scan
+    handler(scan_id, session_scope=session_scope)
 
 
 def _job_scan_id(job: Job) -> str | None:

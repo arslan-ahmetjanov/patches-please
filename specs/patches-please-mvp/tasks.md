@@ -60,12 +60,14 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-035 | — | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
 | T-036 | FR-031…FR-037, NFR-007 | `patches_please/cli.py`, `pyproject.toml` (`[project.scripts]`, `httpx` в зависимостях), `tests/test_cli.py`, `docs/ci-github.md` | Клиент: аргументы, старт прогона, ожидание с таймаутом, таблица кодов выхода, `--json`, повторы на `5xx`, маскирование токена | `uv run pytest tests/test_cli.py` | код 0 при `pass`, 1 при `fail`, коды 2–6 различимы, токен не попадает ни в stdout, ни в stderr |
 | T-037 | CON-004 | `docs/brand.md`, `patches_please/templates/static/brand.css`, `patches_please/templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
-| T-038 | FR-002, FR-005, FR-008, FR-019 | `patches_please/scans/pipeline.py`, `patches_please/scans/queue.py`, `tests/test_scan_pipeline.py` | Оркестрация прогона в воркере: клон репозитория, запуск трёх сканеров, нормализация, классификация по baseline, исключения, метрики, вердикт и отчёты за один проход после `queued → running` | `uv run pytest tests/test_scan_pipeline.py`, прогон на демо | прогон из очереди доходит до `done` с находками, метриками, вердиктом и двумя отчётами; новая `critical` при политике `critical` даёт `fail` |
+| T-038 | FR-002, FR-005, FR-019 | `patches_please/scans/pipeline.py`, `patches_please/scans/queue.py`, `tests/test_scan_pipeline.py` | Оркестрация прогона в воркере: клон репозитория, запуск трёх сканеров, нормализация, классификация по baseline, исключения, метрики и вердикт за один проход после `queued → running` | `uv run pytest tests/test_scan_pipeline.py`, прогон на демо | прогон из очереди доходит до `done` с находками, метриками и вердиктом; новая `critical` при политике `critical` даёт `fail` |
 
 T-038 добавлена после T-018: расчёт вердикта и список блокирующих находок есть,
 но в обработку прогона они не встроены. До T-038 воркер переводит прогон только
 `queued → running`, поэтому реальный прогон заканчивается без вердикта, а CLI
-возвращает код 4, а не 1. T-020 и T-026 опираются на T-038.
+возвращает код 4, а не 1. Отчёты остаются за T-020: T-038 завершает прогон
+находками, метриками и вердиктом, которые отчёт и показывает. T-020 и T-026
+опираются на T-038.
 
 ## Трассировка
 
@@ -78,7 +80,7 @@ T-038 добавлена после T-018: расчёт вердикта и сп
 | FR-005 | T-018, T-038 | `tests/test_blocking.py`, `tests/test_scan_pipeline.py` |
 | FR-006 | T-014 | `tests/test_baseline.py` |
 | FR-007 | T-008 | `tests/test_scans.py` |
-| FR-008 | T-020, T-038 | `tests/test_reports.py`, `tests/test_scan_pipeline.py` |
+| FR-008 | T-020 | `tests/test_reports.py` |
 | FR-009 | T-007, T-008 | `tests/test_contract.py`, `tests/test_scans.py` |
 | FR-010 | T-022 | `tests/test_web_project.py` |
 | FR-011 | T-015, T-024 | `tests/test_exceptions.py`, `tests/test_web_settings.py` |
