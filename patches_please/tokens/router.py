@@ -4,7 +4,7 @@ API описан в `contracts/openapi.yaml`. Страницы управлен�
 появится вместе со страницей проекта (T-022) или настроек (T-024), поэтому
 HTML-маршрутов здесь не заводим.
 
-Права до T-025 проверяются локально по `project_members`: создаёт и отзывает
+Права проверяет `patches_please.auth.permissions` (T-025): создаёт и отзывает
 владелец (`owner`), участник (`member`) видит список без открытых значений,
 посторонний получает 404 — наличие чужого проекта не раскрывается. Участник
 на запись получает 403: проект ему известен, скрывать нечего.
@@ -16,13 +16,12 @@ from typing import Annotated, Final
 
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel, StringConstraints
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from patches_please.auth.dependencies import ApiUser, DbSession
-from patches_please.auth.models import User
+from patches_please.auth.permissions import FORBIDDEN_MESSAGE as FORBIDDEN_MESSAGE
+from patches_please.auth.permissions import PROJECT_NOT_FOUND_MESSAGE as PROJECT_NOT_FOUND_MESSAGE
+from patches_please.auth.permissions import require_project_member, require_project_owner
 from patches_please.auth.router import ErrorResponse
-from patches_please.projects.models import OWNER_ROLE, ProjectMember
 from patches_please.tokens import service
 from patches_please.tokens.models import ProjectToken
 
@@ -30,9 +29,7 @@ api_router = APIRouter(prefix="/api/v1/projects", tags=["токены"])
 
 TokenName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 
-PROJECT_NOT_FOUND_MESSAGE: Final = "Проект не найден"
 TOKEN_NOT_FOUND_MESSAGE: Final = "Токен не найден"
-FORBIDDEN_MESSAGE: Final = "Недостаточно прав"
 
 
 class TokenCreate(BaseModel):
@@ -79,30 +76,6 @@ class TokenListItem(BaseModel):
         )
 
 
-def project_role(session: Session, project_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
-    """Роль пользователя в проекте; `None` — проекта нет или он не участник.
-
-    Общего помощника прав пока нет (T-025), поэтому запрос живёт здесь же:
-    `project_members` — единственное основание видеть проект.
-    """
-    return session.scalar(
-        select(ProjectMember.role).where(
-            ProjectMember.project_id == project_id,
-            ProjectMember.user_id == user_id,
-        )
-    )
-
-
-def require_project_owner(session: Session, project_id: uuid.UUID, user: User) -> None:
-    """Пропускает только владельца проекта. Посторонний видит 404, участник — 403."""
-    role = project_role(session, project_id, user.id)
-    if role is None:
-        # Несуществующий и чужой проект выглядят одинаково: данные проекта не отдаём.
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PROJECT_NOT_FOUND_MESSAGE)
-    if role != OWNER_ROLE:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=FORBIDDEN_MESSAGE)
-
-
 @api_router.get(
     "/{project_id}/tokens",
     summary="Токены проекта",
@@ -132,8 +105,7 @@ def api_list_tokens(
     project_id: uuid.UUID, user: ApiUser, session: DbSession
 ) -> list[TokenListItem]:
     """Метаданные токенов проекта. Доступно любому участнику, открытых значений нет."""
-    if project_role(session, project_id, user.id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=PROJECT_NOT_FOUND_MESSAGE)
+    require_project_member(session, project_id, user, hide_project=True)
     return [TokenListItem.from_model(stored) for stored in service.list_tokens(session, project_id)]
 
 

@@ -32,8 +32,9 @@ REST API отдаёт только запуск и статус прогона, 
 
 Доступ — по строке `project_members`, как в списке проектов (T-005). Чужой
 проект отвечает 403 (FR-018), несуществующий slug — 404. Настройки меняет
-только владелец: участник получает 403, посторонний — 404. Проверка прав здесь
-локальная: единый помощник появится в T-025 и заменит её.
+только владелец: участник получает 403, посторонний — 404. Проверки прав
+единые — `patches_please/auth/permissions.py` (T-025): страницы и API решают
+доступ одним кодом и не отдают данных проекта в теле отказа.
 """
 
 import uuid
@@ -51,6 +52,12 @@ from sqlalchemy.orm import Session
 
 from patches_please.auth.dependencies import DbSession, HtmlUser
 from patches_please.auth.models import User
+from patches_please.auth.permissions import (
+    PROJECT_NOT_FOUND_MESSAGE,
+    project_role,
+    require_project_member,
+    require_project_owner,
+)
 from patches_please.metrics.service import SEVERITY_KEYS, MetricsError, RunMetrics, load_metrics
 from patches_please.normalize.model import Severity
 from patches_please.policy.classify import FindingState
@@ -68,11 +75,10 @@ from patches_please.policy.verdict import (
     load_policy,
     upsert_policy,
 )
-from patches_please.projects.models import OWNER_ROLE, Project, ProjectMember
+from patches_please.projects.models import OWNER_ROLE, Project
 from patches_please.scans.findings import load_records
 from patches_please.scans.models import FindingRecord, Scan
 from patches_please.scans.service import ScanStatus
-from patches_please.tokens.router import project_role, require_project_owner
 from patches_please.web.csrf import (
     CSRF_FIELD_NAME,
     require_csrf,
@@ -129,8 +135,6 @@ UNFINISHED_SCAN_MESSAGES: Final[dict[str, str]] = {
     str(ScanStatus.ERROR): "Прогон завершился ошибкой: находок нет.",
 }
 
-PROJECT_NOT_FOUND_MESSAGE: Final = "Проект не найден"
-PROJECT_FORBIDDEN_MESSAGE: Final = "Нет доступа к проекту"
 SCAN_NOT_FOUND_MESSAGE: Final = "Прогон не найден"
 EXCEPTION_NOT_FOUND_MESSAGE: Final = "Исключение не найдено"
 
@@ -257,15 +261,6 @@ class ExceptionView:
 def find_project(session: Session, slug: str) -> Project | None:
     """Проект по slug из адреса страницы."""
     return session.scalar(select(Project).where(Project.slug == slug))
-
-
-def is_project_member(session: Session, project_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-    """Строка членства — единственное основание видеть проект (FR-017, FR-018)."""
-    statement = select(ProjectMember.project_id).where(
-        ProjectMember.project_id == project_id,
-        ProjectMember.user_id == user_id,
-    )
-    return session.scalar(statement) is not None
 
 
 def find_scan(session: Session, project: Project, scan_id: uuid.UUID) -> Scan | None:
@@ -661,11 +656,7 @@ def project_page(request: Request, slug: str, user: HtmlUser, session: DbSession
             status_code=status.HTTP_404_NOT_FOUND,
             detail=PROJECT_NOT_FOUND_MESSAGE,
         )
-    if not is_project_member(session, project.id, user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=PROJECT_FORBIDDEN_MESSAGE,
-        )
+    require_project_member(session, project.id, user)
 
     dashboard = load_dashboard(session, project)
     return templates.TemplateResponse(
@@ -710,11 +701,7 @@ def scan_page(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=PROJECT_NOT_FOUND_MESSAGE,
         )
-    if not is_project_member(session, project.id, user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=PROJECT_FORBIDDEN_MESSAGE,
-        )
+    require_project_member(session, project.id, user)
 
     scan = find_scan(session, project, parse_scan_id(scan_id))
     if scan is None:

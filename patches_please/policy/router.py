@@ -5,9 +5,9 @@
 Ответ — действующая политика проекта. Отдельного чтения в API нет: страница
 настроек читает политику через `load_policy` (T-024) и в контракт не входит.
 
-Права до T-025 проверяются локально: управляет политикой только владелец
-проекта (`owner`). Участник получает 403, посторонний — 404, чтобы наличие
-чужого проекта не раскрывалось.
+Права проверяет `patches_please.auth.permissions` (T-025): управляет политикой
+только владелец проекта (`owner`). Участник получает 403, посторонний — 404,
+чтобы наличие чужого проекта не раскрывалось.
 """
 
 import uuid
@@ -16,6 +16,7 @@ from fastapi import APIRouter, status
 from pydantic import BaseModel, Field
 
 from patches_please.auth.dependencies import ApiUser, DbSession
+from patches_please.auth.permissions import require_project_owner
 from patches_please.auth.router import ErrorResponse
 from patches_please.normalize.model import Severity
 from patches_please.policy.models import Policy
@@ -24,7 +25,6 @@ from patches_please.policy.verdict import (
     FailMode,
     upsert_policy,
 )
-from patches_please.tokens.router import require_project_owner
 
 api_router = APIRouter(prefix="/api/v1/projects", tags=["политика"])
 
