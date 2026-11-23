@@ -1,0 +1,33 @@
+# Демонстрация интеграции (T-026): одно действие ставит CLI и делает
+# `patches-please scan --wait`. Запуск ручной, потому что без развёрнутого
+# сервиса прогон не пройдёт: адрес берётся из переменной репозитория,
+# токен — из секретов. Сам job ничего не опрашивает.
+name: Демо-прогон
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Проверка коммита
+    runs-on: ubuntu-latest
+    # Запас больше дедлайна клиента (900 с): установка CLI и ожидание прогона.
+    timeout-minutes: 20
+    steps:
+      # Нужен для локального действия: ./.github/actions/patches-please лежит
+      # в этом же репозитории.
+      - name: Клонирование репозитория
+        uses: actions/checkout@v7
+
+      - name: Проверка Patches, Please
+        uses: ./.github/actions/patches-please
+        with:
+          server: ${{ vars.PATCHES_PLEASE_URL }}
+          token: ${{ secrets.PATCHES_PLEASE_TOKEN }}
+          provider: github
+          commit: ${{ github.sha }}
+          ref: ${{ github.ref }}
+          timeout: '900'

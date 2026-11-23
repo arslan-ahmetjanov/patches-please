@@ -1,0 +1,107 @@
+# Композитное действие T-026 (FR-019…FR-021, FR-033): ставит CLI patches-please
+# из этого же репозитория и делает один вызов `patches-please scan --wait`.
+# Собственного опроса статуса в действии нет: ожидание, повторы и перевод вердикта
+# в код выхода — работа клиента (delta-008). Код выхода шага равен коду клиента,
+# поэтому job падает при `fail` и проходит при `pass` (FR-020, FR-033).
+name: 'Patches, Please'
+description: 'Прогон коммита: установка CLI и scan --wait, код выхода шага — вердикт'
+author: 'arslan-ahmetjanov'
+
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  server:
+    description: 'Адрес API сервиса, например https://patches.example.ru'
+    required: true
+  token:
+    description: 'Токен проекта (pp_...). Передавайте из secrets: значение маскируется в логах'
+    required: true
+  provider:
+    description: 'CI-провайдер: github или gitlab'
+    required: false
+    default: 'github'
+  commit:
+    description: 'Полный SHA коммита; пусто — github.sha'
+    required: false
+    default: ''
+  ref:
+    description: 'git ref коммита; пусто — github.ref'
+    required: false
+    default: ''
+  timeout:
+    description: 'Общий дедлайн команды в секундах: старт, повторы и ожидание статуса'
+    required: false
+    default: '900'
+
+runs:
+  using: 'composite'
+  steps:
+    # Входы проверяются до установки CLI: пустой адрес или токен — ошибка
+    # настройки, и узнать о ней лучше сразу, а не после sync. Маска ставится
+    # до того, как токен попадёт в окружение клиента: дальше значение можно
+    # безопасно передавать через env, в логах его не будет.
+    - name: Проверка входов и маскирование токена
+      shell: bash
+      env:
+        PROJECT_TOKEN: ${{ inputs.token }}
+        PROJECT_SERVER: ${{ inputs.server }}
+      run: |
+        set -euo pipefail
+        if [ -z "${PROJECT_TOKEN}" ]; then
+          echo "::error::не задан вход token: передайте токен проекта из secrets"
+          exit 2
+        fi
+        if [ -z "${PROJECT_SERVER}" ]; then
+          echo "::error::не задан вход server: укажите адрес сервиса, например из vars.PATCHES_PLEASE_URL"
+          exit 2
+        fi
+        echo "::add-mask::${PROJECT_TOKEN}"
+
+    # Версия Python берётся из .python-version репозитория действия, чтобы
+    # установка CLI не зависела от того, что уже стоит на раннере.
+    - name: Установка Python и uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version-file: ${{ github.action_path }}/../../../.python-version
+
+    # Корень репозитория действия — три уровня вверх от .github/actions/patches-please.
+    # Публикация в PyPI не нужна: пакет ставится из этого дерева, зависимости
+    # фиксированы uv.lock (--frozen), dev-группа в CI не нужна (--no-dev).
+    - name: Установка CLI patches-please
+      shell: bash
+      env:
+        ACTION_ROOT: ${{ github.action_path }}/../../..
+      run: |
+        set -euo pipefail
+        uv sync --frozen --no-dev --project "${ACTION_ROOT}"
+
+    # Единственный запуск проверки: без `|| true` и без собственного поллинга.
+    # 0 — pass, 1 — fail, 2…6 — сбой клиента или сервиса (см. docs/ci-github.md).
+    - name: Прогон с ожиданием вердикта
+      shell: bash
+      env:
+        ACTION_ROOT: ${{ github.action_path }}/../../..
+        PATCHES_PLEASE_URL: ${{ inputs.server }}
+        PATCHES_PLEASE_TOKEN: ${{ inputs.token }}
+        INPUT_PROVIDER: ${{ inputs.provider }}
+        INPUT_COMMIT: ${{ inputs.commit }}
+        INPUT_REF: ${{ inputs.ref }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+      run: |
+        set -euo pipefail
+        commit="${INPUT_COMMIT:-${GITHUB_SHA:-}}"
+        ref="${INPUT_REF:-${GITHUB_REF:-}}"
+        if [ -z "${commit}" ] || [ -z "${ref}" ]; then
+          echo "::error::не удалось определить коммит или ref: задайте входы commit и ref"
+          exit 2
+        fi
+        uv run --frozen --no-dev --project "${ACTION_ROOT}" patches-please scan \
+          --server "${PATCHES_PLEASE_URL}" \
+          --token "${PATCHES_PLEASE_TOKEN}" \
+          --provider "${INPUT_PROVIDER}" \
+          --commit "${commit}" \
+          --ref "${ref}" \
+          --wait \
+          --timeout "${INPUT_TIMEOUT}"
