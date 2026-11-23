@@ -1,7 +1,8 @@
 # Задачи: Patches, Please — V1
 
 Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения,
-кроме T-034…T-037: они добавлены позже и идут первыми (см. «Порядок и сроки»).
+кроме T-034…T-037: они добавлены позже и идут первыми (см. «Порядок и сроки»),
+и T-038: она добавлена позже и идёт между T-019 и T-020.
 
 Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004);
 [delta-002-tokens.md](delta-002-tokens.md) — FR-024, FR-025 (T-006);
@@ -59,19 +60,25 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-035 | — | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
 | T-036 | FR-031…FR-037, NFR-007 | `patches_please/cli.py`, `pyproject.toml` (`[project.scripts]`, `httpx` в зависимостях), `tests/test_cli.py`, `docs/ci-github.md` | Клиент: аргументы, старт прогона, ожидание с таймаутом, таблица кодов выхода, `--json`, повторы на `5xx`, маскирование токена | `uv run pytest tests/test_cli.py` | код 0 при `pass`, 1 при `fail`, коды 2–6 различимы, токен не попадает ни в stdout, ни в stderr |
 | T-037 | CON-004 | `docs/brand.md`, `patches_please/templates/static/brand.css`, `patches_please/templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
+| T-038 | FR-002, FR-005, FR-008, FR-019 | `patches_please/scans/pipeline.py`, `patches_please/scans/queue.py`, `tests/test_scan_pipeline.py` | Оркестрация прогона в воркере: клон репозитория, запуск трёх сканеров, нормализация, классификация по baseline, исключения, метрики, вердикт и отчёты за один проход после `queued → running` | `uv run pytest tests/test_scan_pipeline.py`, прогон на демо | прогон из очереди доходит до `done` с находками, метриками, вердиктом и двумя отчётами; новая `critical` при политике `critical` даёт `fail` |
+
+T-038 добавлена после T-018: расчёт вердикта и список блокирующих находок есть,
+но в обработку прогона они не встроены. До T-038 воркер переводит прогон только
+`queued → running`, поэтому реальный прогон заканчивается без вердикта, а CLI
+возвращает код 4, а не 1. T-020 и T-026 опираются на T-038.
 
 ## Трассировка
 
 | Требование | Задачи | Тесты |
 | --- | --- | --- |
 | FR-001 | T-008 | `tests/test_scans.py` |
-| FR-002 | T-013 | `tests/test_adapters.py`, офлайн-прогон трёх сканеров |
+| FR-002 | T-013, T-038 | `tests/test_adapters.py`, `tests/test_scan_pipeline.py`, офлайн-прогон трёх сканеров |
 | FR-003 | T-012, T-023 | `tests/test_normalize.py`, `tests/test_web_scan.py` |
 | FR-004 | T-017 | `tests/test_policy.py` |
-| FR-005 | T-018 | `tests/test_blocking.py` |
+| FR-005 | T-018, T-038 | `tests/test_blocking.py`, `tests/test_scan_pipeline.py` |
 | FR-006 | T-014 | `tests/test_baseline.py` |
 | FR-007 | T-008 | `tests/test_scans.py` |
-| FR-008 | T-020 | `tests/test_reports.py` |
+| FR-008 | T-020, T-038 | `tests/test_reports.py`, `tests/test_scan_pipeline.py` |
 | FR-009 | T-007, T-008 | `tests/test_contract.py`, `tests/test_scans.py` |
 | FR-010 | T-022 | `tests/test_web_project.py` |
 | FR-011 | T-015, T-024 | `tests/test_exceptions.py`, `tests/test_web_settings.py` |
@@ -82,7 +89,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-016 | T-014 | `tests/test_baseline.py` |
 | FR-017 | T-005 | `tests/test_projects.py` |
 | FR-018 | T-023, T-025 | `tests/test_permissions.py`, `tests/test_web_scan.py` |
-| FR-019 | T-008, T-026, T-027, T-028, T-036 | `tests/test_scans.py`, `tests/test_cli.py`, `tests/test_parity.py`, демо-пайплайны |
+| FR-019 | T-008, T-026, T-027, T-028, T-036, T-038 | `tests/test_scans.py`, `tests/test_cli.py`, `tests/test_parity.py`, `tests/test_scan_pipeline.py`, демо-пайплайны |
 | FR-020 | T-026, T-027, T-036 | `tests/test_cli.py` (`test_fr_033_*`), GitHub demo-воркфлоу, `gitlab-ci-local` |
 | FR-021 | T-026, T-027 | `docs/ci-github.md`, `docs/ci-gitlab.md` |
 | FR-022 | T-004 | `tests/test_auth.py` (`test_fr_022_*`) |
@@ -133,6 +140,10 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 
 Итого около 8,5 недель работы плюс две недели буфера на текст ВКР и правки.
 Защита в феврале — запас есть.
+
+T-038 идёт между этапами 6 и 7: без неё отчётам T-020 нечего показывать,
+а T-026/T-027 не получат код 1 на реальном прогоне. В оценки выше она не
+включена — задача добавлена после планирования.
 
 T-034 идёт после T-013: переименование каталога `app/` задевает файлы, которые
 создаёт задача по сканерам. Пока они не закоммичены, переименование делается
