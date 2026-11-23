@@ -4,11 +4,13 @@
 """
 
 from functools import partial
+from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from patches_please.api import build_openapi_schema
@@ -31,6 +33,11 @@ app = FastAPI(
 # Схема собирается в patches_please/api.py: там же схемы безопасности и точная форма
 # ValidationError, которую не вывести из обработчика 422 автоматически.
 app.openapi = partial(build_openapi_schema, app)  # type: ignore[method-assign]
+
+# Фирменные стили страниц (T-037): один файл на все шаблоны. HTML-отчёт встраивает
+# его в себя, потому что открывается с диска без запущенного сервера.
+STATIC_DIR = Path(__file__).resolve().parent / "templates" / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 app.include_router(auth_api_router)
 app.include_router(auth_html_router)

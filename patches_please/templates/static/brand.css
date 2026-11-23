@@ -1,0 +1,488 @@
+/* Фирменный стиль Patches, Please (T-037, CON-004).
+   Один файл на все страницы и HTML-отчёт. Токены и шрифты — из docs/brand.md.
+   Пиксельный шрифт только в заголовках, логотипе и штампе: тело текста,
+   таблицы и формы набраны IBM Plex Sans. */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+
+  /* Палитра: бумага, чернила, линии, два цвета штампа. */
+  --paper: #faf7f0;
+  --ink: #14120f;
+  --muted: #6e665a;
+  --line: #d8d1c2;
+  --stamp-pass: #1f6b3d;
+  --stamp-fail: #b3261e;
+
+  /* Терминальный блок: зелёное на чёрном живёт только здесь. */
+  --terminal-bg: #0c120c;
+  --terminal-fg: #b9f6c1;
+  --terminal-accent: #7ae582;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Pixelify Sans", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+
+html {
+  background: var(--paper);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+/* Пиксельный шрифт — только h1, логотип и штамп: тело и таблицы читаются
+   обычным шрифтом. */
+h1,
+h2 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+h1 {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid var(--line);
+}
+
+header .spacer {
+  flex: 1;
+}
+
+header form {
+  margin: 0;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+main {
+  display: grid;
+  gap: 2rem;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+p.muted {
+  margin: 0;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1.5rem;
+  margin: 0;
+}
+
+dt {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+dd {
+  margin: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+th,
+td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+}
+
+td.num,
+th.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+}
+
+h1 code {
+  font-size: 0.72em;
+}
+
+.empty {
+  margin: 0;
+  padding: 1rem;
+  border: 1px dashed var(--line);
+  border-radius: 0.25rem;
+  color: var(--muted);
+}
+
+.error {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--stamp-fail);
+  border-radius: 0.25rem;
+  color: var(--stamp-fail);
+  font-size: 0.9rem;
+}
+
+.warning {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--stamp-fail);
+  border-left-width: 4px;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.verdict {
+  font-weight: 600;
+}
+
+.verdict.pass {
+  color: var(--stamp-pass);
+}
+
+.verdict.fail {
+  color: var(--stamp-fail);
+}
+
+.badge {
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--stamp-fail);
+  border-radius: 0.2rem;
+  color: var(--stamp-fail);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+tr.blocking td {
+  font-weight: 600;
+}
+
+/* Штамп вердикта: рамка 2px, поворот −8°, крупно в углу шапки. */
+.stamp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0.45rem 1rem 0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 0.15rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+  white-space: nowrap;
+}
+
+.stamp-date {
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+}
+
+.stamp-pass {
+  color: var(--stamp-pass);
+}
+
+.stamp-fail {
+  color: var(--stamp-fail);
+}
+
+.page-head {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.page-head p.muted {
+  margin: 0 0 0.25rem;
+}
+
+/* Терминальный блок: только код, логи и причина сбоя. */
+.terminal {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-radius: 0.25rem;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.status-ok {
+  color: var(--stamp-pass);
+}
+
+.status-degraded {
+  color: var(--stamp-fail);
+  font-weight: 600;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 0 0 1rem;
+}
+
+.filters label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.filters select,
+.filters button {
+  margin: 0;
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+}
+
+.filters a {
+  align-self: center;
+}
+
+label {
+  font-size: 0.9rem;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: 0.25rem;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+button.link {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+}
+
+button.link:hover {
+  border-color: var(--ink);
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: 0.25rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.hint {
+  margin: -0.25rem 0 0.75rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+form.create {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 30rem;
+}
+
+form.create input {
+  margin-bottom: 0.5rem;
+}
+
+.settings-form {
+  display: grid;
+  gap: 0.25rem;
+  max-width: 32rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-form input,
+.settings-form select,
+.settings-form textarea {
+  margin-bottom: 0.5rem;
+}
+
+fieldset {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 0.5rem;
+  padding: 0.5rem 0.75rem 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.25rem;
+}
+
+legend {
+  padding: 0 0.25rem;
+  font-size: 0.9rem;
+}
+
+label.check {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+label.check input {
+  margin: 0;
+}
+
+td form {
+  margin: 0;
+}
+
+/* Вход: карточка по центру, без отдельной тёмной темы. */
+body.page-login {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+}
+
+body.page-login main {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  padding: 2rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+}
+
+body.page-login h1 {
+  margin: 0 0 1.5rem;
+  font-size: 1.35rem;
+}
+
+body.page-login label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+body.page-login input {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+body.page-login button {
+  width: 100%;
+}
+
+body.page-projects main {
+  max-width: 60rem;
+}
+
+/* Кнопки-действия не мельче 40px: попадать курсором и пальцем проще. */
+button:not(.link) {
+  min-height: 2.5rem;
+}
+
+/* Узкий экран и сильное увеличение: шапка и карточка досмотра переносятся,
+   определения идут в одну колонку. Штамп остаётся повёрнутым на −8°. */
+@media (max-width: 48rem) {
+  header {
+    padding: 0.75rem 1rem;
+  }
+
+  main {
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+
+  .page-head {
+    flex-direction: column-reverse;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  dl {
+    grid-template-columns: 1fr;
+    gap: 0.15rem;
+  }
+
+  dd {
+    margin-bottom: 0.5rem;
+  }
+
+  .filters {
+    gap: 0.75rem;
+  }
+}

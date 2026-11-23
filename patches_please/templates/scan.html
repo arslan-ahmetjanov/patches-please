@@ -3,76 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Прогон {{ scan.commit_sha[:12] }} — Patches, Please</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      margin: 0;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem 2rem;
-      border-bottom: 1px solid currentColor;
-    }
-    header .spacer { flex: 1; }
-    header form { margin: 0; }
-    header a { color: inherit; }
-    main {
-      max-width: 72rem;
-      margin: 0 auto;
-      padding: 2rem;
-      display: grid;
-      gap: 2rem;
-    }
-    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
-    .muted { font-size: 0.9rem; }
-    p.muted { margin: 0; }
-    dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.5rem; margin: 0; }
-    dt { font-size: 0.9rem; }
-    dd { margin: 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
-    th { font-weight: 600; }
-    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-    code { font-size: 0.85rem; }
-    .empty {
-      margin: 0;
-      padding: 1rem;
-      border: 1px dashed currentColor;
-      border-radius: 0.25rem;
-    }
-    .verdict { font-weight: 600; }
-    .verdict.fail { text-decoration: underline double; }
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: end;
-      gap: 1rem;
-      margin: 0 0 1rem;
-    }
-    .filters label { display: grid; gap: 0.25rem; font-size: 0.9rem; }
-    .filters select, .filters button { font: inherit; padding: 0.3rem 0.5rem; }
-    .filters a { align-self: center; }
-    button.link {
-      padding: 0.25rem 0.5rem;
-      font: inherit;
-      background: transparent;
-      color: inherit;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      cursor: pointer;
-    }
-  </style>
+  <title>Досмотр {{ scan.commit_sha[:12] }} — Patches, Please</title>
+  <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
   <header>
-    <strong>Patches, Please</strong>
+    <strong class="brand">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     <span class="spacer"></span>
     <span>{{ user.email }}</span>
@@ -82,10 +18,20 @@
   </header>
   <main>
     <section id="scan">
-      <p class="muted">
-        <a href="/projects/{{ project.slug }}">{{ project.name }}</a> · прогон
-      </p>
-      <h1>Прогон <code>{{ scan.commit_sha[:12] }}</code></h1>
+      <div class="page-head">
+        <div>
+          <p class="muted">
+            <a href="/projects/{{ project.slug }}">{{ project.name }}</a> · досмотр
+          </p>
+          <h1>Досмотр <code>{{ scan.commit_sha[:12] }}</code></h1>
+        </div>
+        {% if scan.verdict %}
+        <div class="stamp {% if scan.verdict == 'fail' %}stamp-fail{% else %}stamp-pass{% endif %}">
+          <span>{{ verdict_labels.get(scan.verdict, scan.verdict) }}</span>
+          <span class="stamp-date">{{ scan.finished_at.strftime("%d.%m.%Y") }}</span>
+        </div>
+        {% endif %}
+      </div>
       <dl>
         <dt>Проект</dt>
         <dd><a href="/projects/{{ project.slug }}">{{ project.name }}</a> · <code>{{ project.slug }}</code></dd>
@@ -95,12 +41,12 @@
         <dd><code>{{ scan.ref }}</code></dd>
         <dt>Провайдер</dt>
         <dd>{{ scan.provider }}</dd>
-        <dt>Прогон</dt>
+        <dt>Досмотр</dt>
         <dd><code>{{ scan.id }}</code></dd>
         <dt>Статус</dt>
         <dd>
           {% if scan.verdict %}
-          <span class="verdict {% if scan.verdict == 'fail' %}fail{% endif %}">{{ verdict_labels.get(scan.verdict, scan.verdict) }}</span>
+          <span class="verdict {% if scan.verdict == 'fail' %}fail{% elif scan.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(scan.verdict, scan.verdict) }}</span>
           {% else %}
           {{ status_labels.get(scan.status, scan.status) }}
           {% endif %}
@@ -112,20 +58,22 @@
       </dl>
       {% if view.metrics %}
       <p class="muted">
-        Находок в прогоне: {{ view.metrics_total }}, новых: {{ view.metrics.new }},
+        Находок в досмотре: {{ view.metrics_total }}, новых: {{ view.metrics.new }},
         исправленных: {{ view.metrics.fixed }},
         исключённых: {{ "%.1f"|format(view.metrics.excluded_ratio * 100) }} %.
       </p>
       {% elif scan.status == "done" %}
-      <p class="muted">Метрики прогона недоступны: запись <code>scans.timings</code> отсутствует или повреждена.</p>
+      <p class="muted">Метрики досмотра недоступны: запись <code>scans.timings</code> отсутствует или повреждена.</p>
       {% endif %}
     </section>
 
     {% if view.empty_message %}
     <p class="empty">
       {{ view.empty_message }}
-      {% if scan.status == "error" and scan.error %}Причина: {{ scan.error }}{% endif %}
     </p>
+    {% if scan.status == "error" and scan.error %}
+    <pre class="terminal" role="note">Причина: {{ scan.error }}</pre>
+    {% endif %}
     {% else %}
     <section id="findings">
       <h2>Находки</h2>

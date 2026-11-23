@@ -4,81 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Мои проекты — Patches, Please</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      margin: 0;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem 2rem;
-      border-bottom: 1px solid currentColor;
-    }
-    header .spacer { flex: 1; }
-    header form { margin: 0; }
-    main {
-      max-width: 60rem;
-      margin: 0 auto;
-      padding: 2rem;
-      display: grid;
-      gap: 2rem;
-    }
-    h1 { margin: 0; font-size: 1.5rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.125rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.5rem 0.75rem; border-bottom: 1px solid currentColor; text-align: left; }
-    td code { font-size: 0.85rem; }
-    .empty {
-      margin: 0;
-      padding: 1rem;
-      border: 1px dashed currentColor;
-      border-radius: 0.25rem;
-    }
-    .error {
-      margin: 0;
-      padding: 0.5rem;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      font-size: 0.9rem;
-    }
-    form.create { display: grid; gap: 0.25rem; max-width: 30rem; }
-    label { font-size: 0.9rem; }
-    input {
-      box-sizing: border-box;
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-      font: inherit;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      background: Field;
-      color: FieldText;
-    }
-    .hint { margin: -0.25rem 0 0.75rem; font-size: 0.8rem; }
-    button {
-      padding: 0.5rem 1rem;
-      font: inherit;
-      border: 0;
-      border-radius: 0.25rem;
-      background: Highlight;
-      color: HighlightText;
-      cursor: pointer;
-    }
-    button.link {
-      padding: 0.25rem 0.5rem;
-      background: transparent;
-      color: inherit;
-      border: 1px solid currentColor;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/brand.css">
 </head>
-<body>
+<body class="page-projects">
   <header>
-    <strong>Patches, Please</strong>
+    <strong class="brand">Patches, Please</strong>
     <span class="spacer"></span>
     <span>{{ user.email }}</span>
     <form method="post" action="/logout">

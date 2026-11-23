@@ -4,62 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ project.name }} — Patches, Please</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      margin: 0;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem 2rem;
-      border-bottom: 1px solid currentColor;
-    }
-    header .spacer { flex: 1; }
-    header form { margin: 0; }
-    header a { color: inherit; }
-    main {
-      max-width: 72rem;
-      margin: 0 auto;
-      padding: 2rem;
-      display: grid;
-      gap: 2rem;
-    }
-    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
-    .muted { font-size: 0.9rem; }
-    p.muted { margin: 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
-    th { font-weight: 600; }
-    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-    code { font-size: 0.85rem; }
-    .empty {
-      margin: 0;
-      padding: 1rem;
-      border: 1px dashed currentColor;
-      border-radius: 0.25rem;
-    }
-    .verdict { font-weight: 600; }
-    .verdict.fail { text-decoration: underline double; }
-    button.link {
-      padding: 0.25rem 0.5rem;
-      font: inherit;
-      background: transparent;
-      color: inherit;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      cursor: pointer;
-    }
-  </style>
+  <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
   <header>
-    <strong>Patches, Please</strong>
+    <strong class="brand">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     {% if is_owner %}<a href="/projects/{{ project.slug }}/settings">Настройки</a>{% endif %}
     <span class="spacer"></span>
@@ -79,10 +28,10 @@
     </section>
 
     {% if not dashboard.recent_runs %}
-    <p class="empty">По проекту ещё нет прогонов. Запустите проверку из CI — история появится здесь.</p>
+    <p class="empty">По проекту ещё нет досмотров. Запустите проверку из CI — история появится здесь.</p>
     {% else %}
     <section>
-      <h2>Последние прогоны</h2>
+      <h2>Последние досмотры</h2>
       <table>
         <thead>
           <tr>
@@ -104,7 +53,7 @@
             <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
             <td>
               {% if run.status == "done" %}
-              <span class="verdict {% if run.verdict == 'fail' %}fail{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "—") }}</span>
+              <span class="verdict {% if run.verdict == 'fail' %}fail{% elif run.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "—") }}</span>
               {% else %}
               {{ status_labels.get(run.status, run.status) }}
               {% endif %}
@@ -125,7 +74,7 @@
       <table>
         <thead>
           <tr>
-            <th>Прогон</th>
+            <th>Досмотр</th>
             {% for severity in severity_keys %}
             <th class="num">{{ severity_labels[severity] }}</th>
             {% endfor %}
@@ -173,11 +122,11 @@
         </tbody>
       </table>
       {% else %}
-      <p class="muted">Находок в завершённых прогонах нет.</p>
+      <p class="muted">Находок в завершённых досмотрах нет.</p>
       {% endif %}
     </section>
     {% else %}
-    <p class="empty">Завершённых прогонов пока нет: тренд и топ правил появятся после первого завершённого прогона.</p>
+    <p class="empty">Завершённых досмотров пока нет: тренд и топ правил появятся после первого завершённого досмотра.</p>
     {% endif %}
     {% endif %}
   </main>

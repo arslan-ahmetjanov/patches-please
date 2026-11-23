@@ -6,8 +6,8 @@
 
 Проверяется то, что обещает задача: шесть полей FR-003, состояние и сообщение,
 фильтры по severity и состоянию по отдельности и вместе, различимые пустые
-состояния и запрет на данные чужого проекта (FR-018). Все тесты интеграционные:
-без базы страница не строится.
+состояния и запрет на данные чужого проекта (FR-018). Все тесты интеграционные,
+кроме отдачи фирменного CSS: она не читает базу (T-037).
 """
 
 import hashlib
@@ -31,6 +31,7 @@ BASE_TIME = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
 # Таблица находок на странице помечена id: по нему тесты отделяют её от шапки
 # и формы фильтров, где тоже встречаются русские подписи уровней и состояний.
 FINDINGS_SECTION = '<section id="findings">'
+BRAND_CSS_URL = "/static/brand.css"
 
 
 def _create_user(session: Session, email: str) -> User:
@@ -153,6 +154,16 @@ def _row(tbody: str, marker: str) -> str:
     return tbody[start : tbody.index("</tr>", start)]
 
 
+def test_con_004_brand_css_is_served(client: AppClient) -> None:
+    """Фирменный CSS отдаётся с `/static` и содержит токены паспорта стиля (T-037)."""
+    response = client.get(BRAND_CSS_URL)
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/css")
+    for token in ("#faf7f0", "#b3261e", "Pixelify Sans", "IBM Plex Sans"):
+        assert token in response.text
+
+
 @pytest.mark.integration
 def test_fr_018_scan_page_requires_session(db_client: AppClient) -> None:
     """Без cookie страница прогона уводит на вход, как страница проекта."""
@@ -239,6 +250,34 @@ def test_fr_003_scan_page_shows_all_finding_fields(
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize(
+    ("verdict", "label", "stamp_class"),
+    [("pass", "Пропущен", "stamp-pass"), ("fail", "Задержан", "stamp-fail")],
+)
+def test_con_004_scan_page_shows_verdict_stamp(
+    db_client: AppClient,
+    db_session: Session,
+    verdict: str,
+    label: str,
+    stamp_class: str,
+) -> None:
+    """Штамп вердикта на странице досмотра: слово из словаря и класс цвета (T-037)."""
+    _create_user(db_session, "lead@example.com")
+    _login(db_client, "lead@example.com")
+    project_id = _create_project(db_client, "Демо", "demo")
+    scan = _add_scan(db_session, project_id, verdict=verdict, counts={"critical": 1}, new=1)
+
+    page = db_client.get(f"/projects/demo/scans/{scan.id}")
+
+    assert page.status_code == 200
+    assert f'href="{BRAND_CSS_URL}"' in page.text
+    assert f'class="stamp {stamp_class}"' in page.text
+    assert label in page.text
+    assert ">pass<" not in page.text
+    assert ">fail<" not in page.text
+
+
+@pytest.mark.integration
 def test_fr_003_done_scan_without_metrics_still_shows_findings(
     db_client: AppClient, db_session: Session
 ) -> None:
@@ -253,7 +292,7 @@ def test_fr_003_done_scan_without_metrics_still_shows_findings(
     page = db_client.get(f"/projects/demo/scans/{scan.id}")
 
     assert page.status_code == 200
-    assert "Метрики прогона недоступны" in page.text
+    assert "Метрики досмотра недоступны" in page.text
     assert "rule-sql-injection" in _tbody(page.text)
 
 

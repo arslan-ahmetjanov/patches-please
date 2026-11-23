@@ -3,68 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Отчёт по прогону {{ report.scan.commit_sha[:12] }} — Patches, Please</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      margin: 0;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      display: flex;
-      align-items: baseline;
-      gap: 1rem;
-      padding: 1rem 2rem;
-      border-bottom: 1px solid currentColor;
-    }
-    header .spacer { flex: 1; }
-    .muted { font-size: 0.9rem; }
-    main {
-      max-width: 72rem;
-      margin: 0 auto;
-      padding: 2rem;
-      display: grid;
-      gap: 2rem;
-    }
-    h1 { margin: 0; font-size: 1.4rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
-    th { font-weight: 600; }
-    td.num { text-align: right; font-variant-numeric: tabular-nums; }
-    dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.5rem; margin: 0; }
-    dt { font-size: 0.9rem; }
-    dd { margin: 0; }
-    code { font-size: 0.85rem; }
-    .verdict { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.05em; }
-    .verdict.fail { text-decoration: underline double; }
-    .warning, .empty {
-      margin: 0;
-      padding: 0.75rem 1rem;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-    }
-    .warning { font-weight: 600; }
-    .degraded { font-weight: 600; }
-    .badge {
-      padding: 0 0.35rem;
-      border: 1px solid currentColor;
-      border-radius: 0.2rem;
-      font-size: 0.75rem;
-    }
-    tr.blocking td { font-weight: 600; }
-  </style>
+  <title>Отчёт по досмотру {{ report.scan.commit_sha[:12] }} — Patches, Please</title>
+  <style>{% include "static/brand.css" %}</style>
 </head>
 <body>
 {% set severity_labels = {"critical": "критично", "high": "высоко", "medium": "средне", "low": "низко", "info": "информационно"} %}
 {% set state_labels = {"new": "новая", "existing": "существовала"} %}
+{% set status_labels = {"queued": "в очереди", "running": "выполняется", "done": "завершён", "error": "ошибка"} %}
+{% set verdict_label = "Задержан" if report.scan.verdict == "fail" else "Пропущен" %}
   <header>
-    <strong>Patches, Please</strong>
-    <span class="muted">отчёт по прогону</span>
+    <strong class="brand">Patches, Please</strong>
+    <span class="muted">отчёт по досмотру</span>
     <span class="spacer"></span>
-    <span class="verdict {% if report.scan.verdict == 'fail' %}fail{% endif %}">{{ report.scan.verdict }}</span>
+    <div class="stamp {% if report.scan.verdict == 'fail' %}stamp-fail{% else %}stamp-pass{% endif %}">
+      <span>{{ verdict_label }}</span>
+      <span class="stamp-date">{{ report.scan.finished_at.strftime("%d.%m.%Y") }}</span>
+    </div>
   </header>
   <main>
     <section>
@@ -78,8 +32,8 @@
         <dd><code>{{ report.scan.ref }}</code></dd>
         <dt>Провайдер</dt>
         <dd>{{ report.scan.provider }}</dd>
-        <dt>Прогон</dt>
-        <dd><code>{{ report.scan.id }}</code>, статус {{ report.scan.status }}</dd>
+        <dt>Досмотр</dt>
+        <dd><code>{{ report.scan.id }}</code>, статус {{ status_labels.get(report.scan.status, report.scan.status) }}</dd>
         <dt>Начало</dt>
         <dd>{{ report.scan.started_at.strftime("%d.%m.%Y %H:%M:%S") }}</dd>
         <dt>Завершение</dt>
@@ -139,7 +93,7 @@
           {% for check in report.checks %}
           <tr{% if check.degraded %} class="degraded"{% endif %}>
             <td>{{ check.scanner }}</td>
-            <td>{% if check.degraded %}деградировала ({{ check.status }}){% else %}{{ check.status }}{% endif %}</td>
+            <td>{% if check.degraded %}<span class="status-degraded">неполная ({{ check.status }})</span>{% else %}<span class="status-ok">{{ check.status }}</span>{% endif %}</td>
             <td class="num">{{ check.duration_ms }} мс</td>
             <td>{{ check.tool_version or "—" }}</td>
             <td>{{ check.error or "—" }}</td>

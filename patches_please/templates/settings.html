@@ -4,98 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Настройки {{ project.name }} — Patches, Please</title>
-  <style>
-    :root { color-scheme: light dark; }
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      margin: 0;
-      background: Canvas;
-      color: CanvasText;
-    }
-    header {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      padding: 0.75rem 2rem;
-      border-bottom: 1px solid currentColor;
-    }
-    header .spacer { flex: 1; }
-    header form { margin: 0; }
-    header a { color: inherit; }
-    main {
-      max-width: 72rem;
-      margin: 0 auto;
-      padding: 2rem;
-      display: grid;
-      gap: 2rem;
-    }
-    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
-    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
-    .muted { font-size: 0.9rem; }
-    p.muted { margin: 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
-    th { font-weight: 600; }
-    code { font-size: 0.85rem; }
-    .empty {
-      margin: 0;
-      padding: 1rem;
-      border: 1px dashed currentColor;
-      border-radius: 0.25rem;
-    }
-    .error {
-      margin: 0 0 1rem;
-      padding: 0.5rem;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      font-size: 0.9rem;
-    }
-    .settings-form { display: grid; gap: 0.25rem; max-width: 32rem; margin-bottom: 1.5rem; }
-    fieldset {
-      margin: 0 0 0.5rem;
-      padding: 0.5rem 0.75rem 0.25rem;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      display: grid;
-      gap: 0.25rem;
-    }
-    legend { padding: 0 0.25rem; font-size: 0.9rem; }
-    label { font-size: 0.9rem; }
-    label.check { display: flex; align-items: center; gap: 0.5rem; }
-    label.check input { margin: 0; }
-    input, select, textarea {
-      box-sizing: border-box;
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-      font: inherit;
-      border: 1px solid currentColor;
-      border-radius: 0.25rem;
-      background: Field;
-      color: FieldText;
-    }
-    textarea { resize: vertical; }
-    .hint { margin: -0.25rem 0 0.75rem; font-size: 0.8rem; }
-    button {
-      padding: 0.5rem 1rem;
-      font: inherit;
-      border: 0;
-      border-radius: 0.25rem;
-      background: Highlight;
-      color: HighlightText;
-      cursor: pointer;
-    }
-    button.link {
-      padding: 0.25rem 0.5rem;
-      background: transparent;
-      color: inherit;
-      border: 1px solid currentColor;
-    }
-    td form { margin: 0; }
-  </style>
+  <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
   <header>
-    <strong>Patches, Please</strong>
+    <strong class="brand">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
     <span class="spacer"></span>

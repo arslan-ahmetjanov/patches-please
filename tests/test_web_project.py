@@ -28,7 +28,7 @@ PASSWORD = "пароль-123"
 BASE_TIME = datetime(2026, 1, 10, 12, 0, tzinfo=UTC)
 
 # Заголовки блоков: по ним тесты находят нужную секцию в готовой странице.
-RECENT_HEADING = "Последние прогоны"
+RECENT_HEADING = "Последние досмотры"
 TREND_HEADING = "Тренд находок по важности"
 TOP_HEADING = "Топ-5 правил"
 
@@ -203,8 +203,8 @@ def test_fr_010_page_shows_runs_trend_and_top_rules(
 
     recent = _block(page.text, RECENT_HEADING)
     assert _row(recent, old_sha[:12]).count("<td") == 9
-    assert "не пройден" in _row(recent, old_sha[:12])
-    assert "пройден" in _row(recent, new_sha[:12])
+    assert "Задержан" in _row(recent, old_sha[:12])
+    assert "Пропущен" in _row(recent, new_sha[:12])
     # Числа находок по severity и итог берутся из `scans.timings`.
     assert ">3<" in _row(recent, old_sha[:12])
     assert ">4<" in _row(recent, old_sha[:12])
@@ -273,7 +273,7 @@ def test_fr_010_page_without_runs_has_single_empty_state(
 
     assert page.status_code == 200
     assert page.text.count('class="empty"') == 1
-    assert "ещё нет прогонов" in page.text
+    assert "ещё нет досмотров" in page.text
     for heading in (RECENT_HEADING, TREND_HEADING, TOP_HEADING):
         assert heading not in page.text
 
@@ -317,7 +317,7 @@ def test_fr_010_unfinished_runs_do_not_break_trend(
         assert label in recent
     # У незавершённых прогонов числа не показываются.
     assert "—" in recent
-    assert "Завершённых прогонов пока нет" in page.text
+    assert "Завершённых досмотров пока нет" in page.text
     assert TREND_HEADING not in page.text
     assert TOP_HEADING not in page.text
 

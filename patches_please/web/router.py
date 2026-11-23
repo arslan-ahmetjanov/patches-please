@@ -104,8 +104,8 @@ SEVERITY_LABELS: Final[dict[str, str]] = {
     "info": "информационно",
 }
 VERDICT_LABELS: Final[dict[str, str]] = {
-    "pass": "пройден",
-    "fail": "не пройден",
+    "pass": "Пропущен",
+    "fail": "Задержан",
 }
 STATUS_LABELS: Final[dict[str, str]] = {
     "queued": "в очереди",
@@ -130,9 +130,9 @@ SEVERITY_ORDER: Final[dict[str, int]] = {
 # Почему у незавершённого прогона нет таблицы: пустое состояние должно быть
 # честным, а не выглядеть как «находок нет».
 UNFINISHED_SCAN_MESSAGES: Final[dict[str, str]] = {
-    str(ScanStatus.QUEUED): "Прогон ещё в очереди: находки появятся после завершения.",
-    str(ScanStatus.RUNNING): "Прогон выполняется: находки появятся после завершения.",
-    str(ScanStatus.ERROR): "Прогон завершился ошибкой: находок нет.",
+    str(ScanStatus.QUEUED): "Досмотр ещё в очереди: находки появятся после завершения.",
+    str(ScanStatus.RUNNING): "Досмотр выполняется: находки появятся после завершения.",
+    str(ScanStatus.ERROR): "Досмотр прерван ошибкой: находок нет.",
 }
 
 SCAN_NOT_FOUND_MESSAGE: Final = "Прогон не найден"
@@ -140,8 +140,8 @@ EXCEPTION_NOT_FOUND_MESSAGE: Final = "Исключение не найдено"
 
 # Подписи режима деградации и состояния исключения: словарь один на страницу.
 FAIL_MODE_LABELS: Final[dict[str, str]] = {
-    "open": "fail-open: неполная проверка не блокирует",
-    "closed": "fail-closed: неполная проверка блокирует",
+    "open": "fail-open: неполный досмотр не блокирует",
+    "closed": "fail-closed: неполный досмотр блокирует",
 }
 EXCEPTION_STATUS_LABELS: Final[dict[str, str]] = {
     "active": "действует",
