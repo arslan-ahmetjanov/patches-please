@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Отчёт по прогону {{ report.scan.commit_sha[:12] }} — Patches, Please</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: Canvas;
+      color: CanvasText;
+    }
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid currentColor;
+    }
+    header .spacer { flex: 1; }
+    .muted { font-size: 0.9rem; }
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+    h1 { margin: 0; font-size: 1.4rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
+    th { font-weight: 600; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.5rem; margin: 0; }
+    dt { font-size: 0.9rem; }
+    dd { margin: 0; }
+    code { font-size: 0.85rem; }
+    .verdict { font-size: 1.6rem; font-weight: 700; letter-spacing: 0.05em; }
+    .verdict.fail { text-decoration: underline double; }
+    .warning, .empty {
+      margin: 0;
+      padding: 0.75rem 1rem;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+    }
+    .warning { font-weight: 600; }
+    .degraded { font-weight: 600; }
+    .badge {
+      padding: 0 0.35rem;
+      border: 1px solid currentColor;
+      border-radius: 0.2rem;
+      font-size: 0.75rem;
+    }
+    tr.blocking td { font-weight: 600; }
+  </style>
+</head>
+<body>
+{% set severity_labels = {"critical": "критично", "high": "высоко", "medium": "средне", "low": "низко", "info": "информационно"} %}
+{% set state_labels = {"new": "новая", "existing": "существовала"} %}
+  <header>
+    <strong>Patches, Please</strong>
+    <span class="muted">отчёт по прогону</span>
+    <span class="spacer"></span>
+    <span class="verdict {% if report.scan.verdict == 'fail' %}fail{% endif %}">{{ report.scan.verdict }}</span>
+  </header>
+  <main>
+    <section>
+      <h1>{{ report.scan.project.name }}</h1>
+      <dl>
+        <dt>Проект</dt>
+        <dd><code>{{ report.scan.project.slug }}</code></dd>
+        <dt>Коммит</dt>
+        <dd><code>{{ report.scan.commit_sha }}</code></dd>
+        <dt>Ветка</dt>
+        <dd><code>{{ report.scan.ref }}</code></dd>
+        <dt>Провайдер</dt>
+        <dd>{{ report.scan.provider }}</dd>
+        <dt>Прогон</dt>
+        <dd><code>{{ report.scan.id }}</code>, статус {{ report.scan.status }}</dd>
+        <dt>Начало</dt>
+        <dd>{{ report.scan.started_at.strftime("%d.%m.%Y %H:%M:%S") }}</dd>
+        <dt>Завершение</dt>
+        <dd>{{ report.scan.finished_at.strftime("%d.%m.%Y %H:%M:%S") }}</dd>
+      </dl>
+    </section>
+
+    {% if report.totals.degraded_checks %}
+    <p class="warning" role="alert">
+      Покрытие неполное: {{ report.totals.degraded_checks }} из {{ report.checks | length }}
+      проверок не дали результата. Вердикт вынесен по оставшимся проверкам.
+    </p>
+    {% endif %}
+
+    <section>
+      <h2>Метрики</h2>
+      <table>
+        <tbody>
+          <tr><th>Длительность</th><td class="num">{{ "%.1f"|format(report.metrics.duration_sec) }} с</td></tr>
+          <tr><th>Новые находки</th><td class="num">{{ report.metrics.new }}</td></tr>
+          <tr><th>Исправленные находки</th><td class="num">{{ report.metrics.fixed }}</td></tr>
+          <tr>
+            <th>Доля исключённых</th>
+            <td class="num">{{ "%.1f"|format(report.metrics.excluded_ratio * 100) }} %</td>
+          </tr>
+        </tbody>
+      </table>
+      <table>
+        <thead>
+          <tr><th>Находки по важности</th><th>Количество</th></tr>
+        </thead>
+        <tbody>
+          {% for severity, count in report.metrics.findings_by_severity.items() %}
+          <tr>
+            <td>{{ severity_labels.get(severity, severity) }}</td>
+            <td class="num">{{ count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Проверки</h2>
+      {% if report.checks %}
+      <table>
+        <thead>
+          <tr>
+            <th>Сканер</th>
+            <th>Статус</th>
+            <th>Длительность</th>
+            <th>Версия</th>
+            <th>Причина</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for check in report.checks %}
+          <tr{% if check.degraded %} class="degraded"{% endif %}>
+            <td>{{ check.scanner }}</td>
+            <td>{% if check.degraded %}деградировала ({{ check.status }}){% else %}{{ check.status }}{% endif %}</td>
+            <td class="num">{{ check.duration_ms }} мс</td>
+            <td>{{ check.tool_version or "—" }}</td>
+            <td>{{ check.error or "—" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Запусков сканеров нет.</p>
+      {% endif %}
+    </section>
+
+    <section>
+      <h2>Находки — {{ report.totals.findings }}</h2>
+      <p class="muted">
+        Новых: {{ report.totals.new }}, существующих: {{ report.totals.existing }},
+        исключённых: {{ report.totals.excluded }}, блокирующих: {{ report.totals.blocking }}.
+      </p>
+      {% if report.findings %}
+      <table>
+        <thead>
+          <tr>
+            <th>Важность</th>
+            <th>Правило</th>
+            <th>Файл</th>
+            <th>Строка</th>
+            <th>Тип</th>
+            <th>Сканер</th>
+            <th>Состояние</th>
+            <th>Исключена</th>
+            <th>Сообщение</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for finding in report.findings %}
+          <tr{% if finding.blocking %} class="blocking"{% endif %}>
+            <td>{{ severity_labels.get(finding.severity, finding.severity) }}</td>
+            <td>
+              <code>{{ finding.rule_id }}</code>
+              {% if finding.blocking %}<span class="badge">блокирует</span>{% endif %}
+            </td>
+            <td><code>{{ finding.path }}</code></td>
+            <td class="num">{{ finding.line }}</td>
+            <td>{{ finding.finding_type }}</td>
+            <td>{{ finding.scanner }}</td>
+            <td>{{ state_labels.get(finding.state, finding.state) }}</td>
+            <td>{% if finding.excluded %}да{% else %}—{% endif %}</td>
+            <td>{{ finding.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Находок нет.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>

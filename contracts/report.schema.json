@@ -1,0 +1,375 @@
+{
+  "$defs": {
+    "FindingState": {
+      "description": "Метка находки относительно базы сравнения (FR-016).",
+      "enum": [
+        "new",
+        "existing",
+        "fixed"
+      ],
+      "title": "FindingState",
+      "type": "string"
+    },
+    "FindingType": {
+      "description": "Тип проверки, который дал находку (FR-002).",
+      "enum": [
+        "sast",
+        "secrets",
+        "dependencies"
+      ],
+      "title": "FindingType",
+      "type": "string"
+    },
+    "ReportCheck": {
+      "description": "Итог запуска одного сканера: статус, длительность, версия и причина.\n\n`degraded` — не третье значение вердикта (FR-004), а признак неполного\nпокрытия проверки (FR-013, S-004): такой запуск в отчёте виден отдельно.",
+      "properties": {
+        "scanner": {
+          "title": "Scanner",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ScannerStatus"
+        },
+        "duration_ms": {
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "degraded": {
+          "title": "Degraded",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scanner",
+        "status",
+        "duration_ms",
+        "degraded"
+      ],
+      "title": "ReportCheck",
+      "type": "object"
+    },
+    "ReportFinding": {
+      "description": "Находка прогона: поля FR-003 плюс классификация и решение по политике.",
+      "properties": {
+        "scanner": {
+          "title": "Scanner",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "finding_type": {
+          "$ref": "#/$defs/FindingType"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "line": {
+          "title": "Line",
+          "type": "integer"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/FindingState"
+        },
+        "excluded": {
+          "title": "Excluded",
+          "type": "boolean"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "scanner",
+        "rule_id",
+        "finding_type",
+        "severity",
+        "path",
+        "line",
+        "message",
+        "state",
+        "excluded",
+        "blocking"
+      ],
+      "title": "ReportFinding",
+      "type": "object"
+    },
+    "ReportMetrics": {
+      "description": "Пять метрик FR-015 в том же наборе, что и в `scans.timings`.",
+      "properties": {
+        "duration_sec": {
+          "title": "Duration Sec",
+          "type": "number"
+        },
+        "findings_by_severity": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Findings By Severity",
+          "type": "object"
+        },
+        "new": {
+          "title": "New",
+          "type": "integer"
+        },
+        "fixed": {
+          "title": "Fixed",
+          "type": "integer"
+        },
+        "excluded_ratio": {
+          "title": "Excluded Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "duration_sec",
+        "findings_by_severity",
+        "new",
+        "fixed",
+        "excluded_ratio"
+      ],
+      "title": "ReportMetrics",
+      "type": "object"
+    },
+    "ReportProject": {
+      "description": "Проект в шапке отчёта: имя читают люди, slug связывает с интерфейсом.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "slug": {
+          "title": "Slug",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "slug"
+      ],
+      "title": "ReportProject",
+      "type": "object"
+    },
+    "ReportScan": {
+      "description": "Шапка прогона: что проверяли, когда и с каким вердиктом.",
+      "properties": {
+        "id": {
+          "format": "uuid",
+          "title": "Id",
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/$defs/ReportProject"
+        },
+        "commit_sha": {
+          "title": "Commit Sha",
+          "type": "string"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ScanStatus"
+        },
+        "verdict": {
+          "$ref": "#/$defs/Verdict"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "finished_at": {
+          "format": "date-time",
+          "title": "Finished At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "project",
+        "commit_sha",
+        "ref",
+        "provider",
+        "status",
+        "verdict",
+        "created_at",
+        "started_at",
+        "finished_at"
+      ],
+      "title": "ReportScan",
+      "type": "object"
+    },
+    "ReportTotals": {
+      "description": "Сводка по отчёту: по ней проверяют полноту, не пересчитывая находки.",
+      "properties": {
+        "findings": {
+          "title": "Findings",
+          "type": "integer"
+        },
+        "new": {
+          "title": "New",
+          "type": "integer"
+        },
+        "existing": {
+          "title": "Existing",
+          "type": "integer"
+        },
+        "excluded": {
+          "title": "Excluded",
+          "type": "integer"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "type": "integer"
+        },
+        "degraded_checks": {
+          "title": "Degraded Checks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "findings",
+        "new",
+        "existing",
+        "excluded",
+        "blocking",
+        "degraded_checks"
+      ],
+      "title": "ReportTotals",
+      "type": "object"
+    },
+    "ScanStatus": {
+      "description": "Статусы прогона из плана: переходы по ним вводит T-009.",
+      "enum": [
+        "queued",
+        "running",
+        "done",
+        "error"
+      ],
+      "title": "ScanStatus",
+      "type": "string"
+    },
+    "ScannerStatus": {
+      "description": "Исход одного запуска сканера.",
+      "enum": [
+        "ok",
+        "failed",
+        "timed_out"
+      ],
+      "title": "ScannerStatus",
+      "type": "string"
+    },
+    "Severity": {
+      "description": "Единая шкала важности находки для политики и отчёта (FR-014).",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "info"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "Verdict": {
+      "description": "Вердикт по политике проекта (FR-004): ровно два значения.",
+      "enum": [
+        "pass",
+        "fail"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    }
+  },
+  "description": "Отчёт по завершённому прогону (FR-008): схема — источник правды.",
+  "properties": {
+    "schema_version": {
+      "default": "1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scan": {
+      "$ref": "#/$defs/ReportScan"
+    },
+    "metrics": {
+      "$ref": "#/$defs/ReportMetrics"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/ReportCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/ReportFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "totals": {
+      "$ref": "#/$defs/ReportTotals"
+    }
+  },
+  "required": [
+    "scan",
+    "metrics",
+    "checks",
+    "findings",
+    "totals"
+  ],
+  "title": "ScanReport",
+  "type": "object"
+}

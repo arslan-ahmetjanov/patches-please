@@ -100,6 +100,10 @@ RUN uv sync --frozen --no-dev
 COPY scanner-rules /opt/semgrep-rules
 RUN chmod -R a+rX /opt/semgrep-rules
 
+# Каталог отчётов прогонов (T-020): сюда монтируется том reportsdata из compose,
+# писать в него должен пользователь процесса, а не root.
+RUN install -d -o app -g app /app/reports
+
 # Версии для ScannerRun.tool_version: Semgrep и Gitleaks не пишут их в SARIF,
 # а запускать --version в офлайне нельзя — Semgrep печатает версию, но не
 # завершается. Файл собирается из тех же ARG, что и установка инструментов.

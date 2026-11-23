@@ -162,6 +162,8 @@ def _execute(
         adapters=adapters,
         clone=clone,
         workspace=workspace,
+        # Отчёты (T-020) — во временный каталог теста, а не в `reports/` репозитория.
+        reports_dir=workspace / "reports",
     )
 
 
@@ -215,6 +217,7 @@ def test_t_038_queue_run_reaches_done(db_session: Session, tmp_path: Path) -> No
         ],
         clone=_clone,
         workspace=tmp_path,
+        reports_dir=tmp_path / "reports",
     )
 
     process_scan(str(scan.id), lambda: nullcontext(db_session), handler)
@@ -367,6 +370,7 @@ def test_t_038_empty_repo_url_marks_error(
         adapters=[SarifAdapter("semgrep")],
         clone=_clone,
         workspace=tmp_path,
+        reports_dir=tmp_path / "reports",
     )
 
     with caplog.at_level(logging.WARNING, logger=PIPELINE_LOGGER):

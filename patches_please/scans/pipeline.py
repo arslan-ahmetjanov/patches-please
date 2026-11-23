@@ -10,11 +10,17 @@
 4. нормализация SARIF и классификация `new`/`existing` по базе сравнения
    (T-012, T-014);
 5. запись находок, действующие исключения, `done`, метрики и вердикт с учётом
-   деградации проверок (T-016, T-019).
+   деградации проверок (T-016, T-019);
+6. два файла отчёта — JSON и HTML — в каталог `REPORTS_DIR` (T-020, FR-008).
 
 Пометка `degraded` живёт только в памяти и логе: таблицы `scanner_runs` нет,
-отчёт T-020 получит её вместе со схемой. Вердикт остаётся ровно `pass`/`fail`
-(FR-004), режим отказа решает, блокирует ли неполная проверка (FR-013).
+в отчёт она попадает по итогам запусков, которые конвейер передаёт дальше.
+Вердикт остаётся ровно `pass`/`fail` (FR-004), режим отказа решает, блокирует
+ли неполная проверка (FR-013).
+
+Сбой записи отчёта не меняет исход прогона: находки, метрики и вердикт уже
+сохранены, файлы можно пересобрать повторной обработкой. Поэтому ошибка ввода-
+вывода только логируется, а прогон остаётся `done`.
 
 Провайдер CI на шаги не влияет: `scans.provider` только хранится, поэтому
 GitHub Actions и GitLab CI идут одним путём (FR-019). Адрес репозитория и вывод
@@ -41,7 +47,7 @@ from typing import Final
 from sqlalchemy.orm import Session
 
 from patches_please.db import SessionLocal
-from patches_please.metrics.service import save_metrics
+from patches_please.metrics.service import RunMetrics, save_metrics
 from patches_please.normalize.model import Finding
 from patches_please.normalize.sarif import NormalizationError, normalize_run
 from patches_please.policy.baseline import resolve_base
@@ -49,10 +55,11 @@ from patches_please.policy.classify import classify
 from patches_please.policy.degraded import degraded_checks
 from patches_please.policy.verdict import apply_exceptions, load_policy, save_verdict
 from patches_please.projects.models import Project
+from patches_please.reports.artifacts import save_reports
 from patches_please.scanners.base import ScannerAdapter, ScannerRun, ScannerStatus
 from patches_please.scanners.offline import default_adapters
 from patches_please.scanners.runner import run_scanners
-from patches_please.scans.findings import save_findings
+from patches_please.scans.findings import load_records, save_findings
 from patches_please.scans.models import Scan
 from patches_please.scans.service import ScanTransitionError, mark_done, mark_error
 
@@ -116,12 +123,14 @@ def execute_scan(
     adapters: Sequence[ScannerAdapter] | None = None,
     clone: Callable[[str, str, Path], None] = clone_repository,
     workspace: Path | None = None,
+    reports_dir: Path | None = None,
 ) -> None:
-    """Проводит прогон от `running` до `done` с находками, метриками и вердиктом.
+    """Проводит прогон от `running` до `done` с находками, метриками и отчётами.
 
-    `adapters`, `clone` и `workspace` — точки подмены для тестов: боевой вызов
-    берёт три адаптера, git и временный каталог. Неизвестный прогон и повторная
-    доставка не считаются ошибкой задачи: менять уже нечего.
+    `adapters`, `clone`, `workspace` и `reports_dir` — точки подмены для тестов:
+    боевой вызов берёт три адаптера, git, временный каталог и `REPORTS_DIR`.
+    Неизвестный прогон и повторная доставка не считаются ошибкой задачи:
+    менять уже нечего.
     """
     try:
         scan_uuid = uuid.UUID(scan_id)
@@ -137,7 +146,7 @@ def execute_scan(
                 logger.warning("прогон не найден", extra={"scan_id": scan_id})
                 return
             try:
-                _run_steps(session, scan, root, adapters, clone)
+                _run_steps(session, scan, root, adapters, clone, reports_dir)
             except ScanTransitionError as exc:
                 logger.warning("статус прогона не изменён: %s", exc, extra={"scan_id": scan_id})
     finally:
@@ -152,11 +161,12 @@ def _run_steps(
     root: Path,
     adapters: Sequence[ScannerAdapter] | None,
     clone: Callable[[str, str, Path], None],
+    reports_dir: Path | None,
 ) -> None:
     """Шаги прогона по порядку; сессию и временный каталог задаёт вызывающий."""
     project = session.get(Project, scan.project_id)
     repo_url = project.repo_url if project is not None else None
-    if not repo_url:
+    if project is None or not repo_url:
         logger.warning("у проекта нет адреса репозитория", extra={"scan_id": str(scan.id)})
         mark_error(session, scan, MISSING_REPO_REASON)
         return
@@ -199,13 +209,51 @@ def _run_steps(
     save_findings(session, scan, classification)
     apply_exceptions(session, scan)
     mark_done(session, scan)
-    save_metrics(session, scan)
+    metrics = save_metrics(session, scan)
     verdict = save_verdict(session, scan, collected)
+    _save_reports(session, scan, project, metrics, collected, reports_dir)
     logger.info(
         "прогон завершён: %s, находок %s, деградировавших проверок %s",
         verdict,
         len(classification.findings),
         len(degraded_checks(collected)),
+        extra={"scan_id": str(scan.id)},
+    )
+
+
+def _save_reports(
+    session: Session,
+    scan: Scan,
+    project: Project,
+    metrics: RunMetrics,
+    runs: Sequence[ScannerRun],
+    reports_dir: Path | None,
+) -> None:
+    """Пишет JSON- и HTML-отчёт рядом с сохранённым вердиктом (FR-008).
+
+    Политика читается здесь, а не берётся из начала прогона: пороги для пометки
+    `blocking` те же, что у только что вынесенного вердикта. Файлы — следствие
+    уже записанных данных, поэтому сбой записи не отменяет прогон: в лог уходит
+    предупреждение без содержимого находок (NFR-004), а прогон остаётся `done`
+    с вердиктом.
+    """
+    try:
+        artifacts = save_reports(
+            scan,
+            project,
+            load_records(session, scan.id),
+            metrics,
+            runs,
+            load_policy(session, scan.project_id).block_severities,
+            directory=reports_dir,
+        )
+    except OSError as exc:
+        logger.warning("отчёты не записаны: %s", exc, extra={"scan_id": str(scan.id)})
+        return
+    logger.info(
+        "отчёты записаны: %s, %s",
+        artifacts.json_path.name,
+        artifacts.html_path.name,
         extra={"scan_id": str(scan.id)},
     )
 

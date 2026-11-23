@@ -75,7 +75,12 @@ services:
     init: true
     stop_grace_period: 30s
     command: ["python", "-m", "patches_please.worker.main"]
-    environment: *app-environment
+    environment:
+      <<: *app-environment
+      # Каталог отчётов прогонов (T-020): том reportsdata, запись от uid 10001.
+      REPORTS_DIR: ${REPORTS_DIR:-/app/reports}
+    volumes:
+      - reportsdata:/app/reports
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,3 +101,4 @@ services:
 volumes:
   pgdata:
   redisdata:
+  reportsdata:

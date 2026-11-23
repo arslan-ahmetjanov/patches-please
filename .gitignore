@@ -24,7 +24,8 @@ dist/
 
 # Данные и артефакты прогонов
 data/
-reports/
+# Только каталог отчётов в корне: пакет `patches_please/reports` — часть кода.
+/reports/
 artifacts/
 *.db
 *.sqlite3

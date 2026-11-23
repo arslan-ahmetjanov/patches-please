@@ -74,3 +74,17 @@ def load_findings(session: Session, scan_id: uuid.UUID) -> list[Finding]:
         )
         for record in session.scalars(statement)
     ]
+
+
+def load_records(session: Session, scan_id: uuid.UUID) -> list[FindingRecord]:
+    """Строки находок прогона с метками `state` и `excluded` как в базе.
+
+    Нужны отчёту (T-020): доменная модель `Finding` метку классификации и
+    признак исключения не несёт, а порядок строк тот же, что у `load_findings`.
+    """
+    statement = (
+        select(FindingRecord)
+        .where(FindingRecord.scan_id == scan_id)
+        .order_by(FindingRecord.created_at, FindingRecord.id)
+    )
+    return list(session.scalars(statement))
