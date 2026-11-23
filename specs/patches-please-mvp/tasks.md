@@ -10,7 +10,8 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 [delta-005-scanner-runner.md](delta-005-scanner-runner.md) — FR-028 (T-011);
 [delta-006-findings.md](delta-006-findings.md) — FR-029 (T-012);
 [delta-007-scanners.md](delta-007-scanners.md) — FR-030 (T-013);
-[delta-008-cli.md](delta-008-cli.md) — FR-031…FR-037, NFR-007 (T-036).
+[delta-008-cli.md](delta-008-cli.md) — FR-031…FR-037, NFR-007 (T-036);
+[delta-009-baseline.md](delta-009-baseline.md) — FR-038 (T-014).
 
 Пустой ID требования допускается только у T-034, T-035 и T-037: они меняют
 имена, упаковку и оформление, а поведение системы не меняется.
@@ -34,7 +35,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-011 | FR-028 | `patches_please/scanners/base.py`, `patches_please/scanners/runner.py`, `tests/test_runner.py` | Общий интерфейс адаптера, параллельный запуск, общий таймаут | `uv run pytest tests/test_runner.py` | при падении одного сканера остальные завершаются |
 | T-012 | FR-003, FR-029 | `patches_please/normalize/model.py`, `patches_please/normalize/sarif.py`, `patches_please/normalize/fingerprint.py`, `tests/fixtures/*.sarif`, `tests/test_normalize.py` | Нормализация SARIF, fingerprint, дедупликация внутри прогона | `uv run pytest tests/test_normalize.py` | все обязательные поля заполнены, дубли схлопнуты |
 | T-013 | FR-002, FR-030, NFR-003 | `Dockerfile.worker`, `docker-compose.yml`, `patches_please/scanners/semgrep.py`, `gitleaks.py`, `trivy.py`, `process.py`, `offline.py`, `scanner-rules/semgrep/`, `tests/fixtures/scanner-repo/`, `tests/test_adapters.py`, `tests/test_process.py`, `tests/test_offline.py`, `docs/scanners.md` | Бинарники и правила в образ, офлайн-прогон | прогон с отключённой сетью на тестовом репозитории | три сканера дают SARIF без доступа в интернет |
-| T-014 | FR-006, FR-016 | `patches_please/policy/baseline.py`, `patches_please/policy/classify.py`, `tests/test_baseline.py` | Установка baseline, сравнение, метки `new`/`existing`/`fixed` | `uv run pytest tests/test_baseline.py` | сценарий S-003 проходит на данных |
+| T-014 | FR-006, FR-016, FR-038 | `patches_please/policy/models.py`, `patches_please/policy/baseline.py`, `patches_please/policy/classify.py`, `patches_please/scans/models.py`, `patches_please/scans/findings.py`, `patches_please/migrations/versions/0005_findings_baselines.py`, `tests/test_baseline.py` | Таблицы `findings`/`baselines`/`baseline_items`, установка baseline, выбор базы сравнения, метки `new`/`existing`/`fixed` | `uv run pytest tests/test_baseline.py` | сценарий S-003 проходит на данных, повторная установка baseline идемпотентна |
 | T-015 | FR-011, FR-012 | `patches_please/policy/exceptions.py`, `templates/exceptions.html`, `tests/test_exceptions.py` | Исключения с причиной и сроком, автоповтор после истечения, аудит | `uv run pytest tests/test_exceptions.py` | S-005 проходит, истёкшее исключение снова влияет на вердикт |
 | T-016 | FR-015 | `patches_please/metrics/service.py`, `tests/test_metrics.py` | Расчёт метрик прогона: длительность, находки, новые/исправленные, доля исключённых | `uv run pytest tests/test_metrics.py` | все пять метрик считаются и сохраняются |
 | T-017 | FR-004, FR-014 | `patches_please/policy/verdict.py`, `patches_please/policy/router.py`, `tests/test_policy.py` | Пороги по severity и вердикт `pass`/`fail` для проекта | `uv run pytest tests/test_policy.py` | два проекта с разными порогами дают разные вердикты |
@@ -100,6 +101,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | FR-035 | T-036 | `tests/test_cli.py` (`test_fr_035_*`) |
 | FR-036 | T-036 | `tests/test_cli.py` (`test_fr_036_*`) |
 | FR-037 | T-036, T-028 | `tests/test_cli.py` (`test_fr_037_*`), `tests/test_parity.py` |
+| FR-038 | T-014 | `tests/test_baseline.py` (`test_fr_038_*`) |
 | NFR-001 | T-003, T-029 | `tests/load/k6.js`, `docs/measurements.md` |
 | NFR-002 | T-030 | `scripts/measure_scan.py` |
 | NFR-003 | T-013 | офлайн-прогон на тестовом репозитории, `docs/scanners.md` |

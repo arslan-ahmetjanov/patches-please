@@ -1,4 +1,4 @@
-"""Миграции Alembic: один head, таблицы схемы, обратимость (T-002, T-006, NFR-005).
+"""Миграции Alembic: один head, таблицы схемы, обратимость (T-002, T-006, T-008, T-014, NFR-005).
 
 Тест работает без базы: Alembic в офлайн-режиме генерирует SQL, который он применил
 бы к PostgreSQL. Это проверяет и upgrade, и downgrade на каждой машине и в CI.
@@ -36,7 +36,7 @@ def test_t_002_single_head() -> None:
     """В репозитории ровно одна голова: миграции линейны и применяются по порядку."""
     heads = ScriptDirectory.from_config(_config()).get_heads()
 
-    assert heads == ["0004"]
+    assert heads == ["0005"]
 
 
 def test_t_002_upgrade_creates_users_and_sessions() -> None:
@@ -115,3 +115,46 @@ def test_t_008_downgrade_drops_scans_after_index() -> None:
     table_drop = sql.index("DROP TABLE scans")
     projects_drop = sql.index("DROP TABLE projects")
     assert index_drop < table_drop < projects_drop
+
+
+def test_t_014_upgrade_creates_findings_and_baselines() -> None:
+    """Пятая миграция добавляет находки и baseline: уникальность, индексы, каскады."""
+    sql = _offline_sql("upgrade", "head")
+
+    assert "CREATE TABLE findings" in sql
+    assert "CREATE TABLE baselines" in sql
+    assert "CREATE TABLE baseline_items" in sql
+    for column in (
+        "scan_id",
+        "fingerprint",
+        "scanner",
+        "rule_id",
+        "finding_type",
+        "severity",
+        "path",
+        "line",
+        "message",
+        "state",
+        "excluded",
+        "created_at",
+    ):
+        assert column in sql
+    assert "UNIQUE (scan_id, fingerprint)" in sql
+    assert "CREATE INDEX ix_findings_scan_id_severity ON findings (scan_id, severity)" in sql
+    assert "CREATE INDEX ix_findings_fingerprint ON findings (fingerprint)" in sql
+    # Находки уходят вместе с прогоном, ссылка baseline на прогон — обнуляется.
+    assert "ON DELETE CASCADE" in sql
+    assert "ON DELETE SET NULL" in sql
+
+
+def test_t_014_downgrade_drops_in_reverse_order() -> None:
+    """Downgrade убирает индексы и находки раньше таблиц, на которые они ссылаются."""
+    sql = _offline_sql("downgrade", "head:base")
+
+    index_drop = sql.index("DROP INDEX ix_findings_scan_id_severity")
+    findings_drop = sql.index("DROP TABLE findings")
+    items_drop = sql.index("DROP TABLE baseline_items")
+    baselines_drop = sql.index("DROP TABLE baselines")
+    scans_drop = sql.index("DROP TABLE scans")
+    assert index_drop < findings_drop < items_drop < baselines_drop
+    assert findings_drop < scans_drop
