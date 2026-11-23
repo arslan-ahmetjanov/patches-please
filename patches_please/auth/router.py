@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from patches_please.auth import service
+from patches_please.auth.cookies import cookies_secure
 from patches_please.db import get_db
 
 # Шаблоны лежат внутри пакета, в patches_please/templates: отсюда это один уровень вверх.
@@ -60,8 +61,8 @@ class ErrorResponse(BaseModel):
 def _set_session_cookie(response: Response, token: str) -> None:
     """Ставит cookie сессии.
 
-    `secure=False` — ограничение локального стенда: он работает по HTTP, и браузер
-    не вернул бы secure-cookie. Для демо-стенда за HTTPS флаг включается в T-024.
+    `secure` включается вне локального стенда (`APP_ENV` не `local` и не пусто):
+    локальный стенд работает по HTTP, и браузер не вернул бы такую cookie (T-024).
     """
     response.set_cookie(
         key=service.SESSION_COOKIE_NAME,
@@ -70,7 +71,7 @@ def _set_session_cookie(response: Response, token: str) -> None:
         path="/",
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=cookies_secure(),
     )
 
 
@@ -81,7 +82,7 @@ def _clear_session_cookie(response: Response) -> None:
         path="/",
         httponly=True,
         samesite="lax",
-        secure=False,
+        secure=cookies_secure(),
     )
 
 

@@ -1,0 +1,42 @@
+<section id="policy">
+  <h2>Политика вердикта</h2>
+  <p class="muted">
+    Новая находка выбранного уровня делает вердикт «не пройден». Находки
+    из baseline и снятые исключением вердикт не меняют. Пока политика не
+    сохранена, блокируются критичные и высокие находки.
+  </p>
+
+  {% if policy_error %}
+  <p class="error" role="alert">{{ policy_error }}</p>
+  {% endif %}
+
+  <form class="settings-form" method="post" action="/projects/{{ project.slug }}/settings/policy">
+    <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+
+    <fieldset>
+      <legend>Блокирующие уровни важности</legend>
+      {% for severity in severity_keys %}
+      <label class="check">
+        <input type="checkbox" name="block_severities" value="{{ severity }}"
+               {%- if severity in policy_values.block_severities %} checked{% endif %}>
+        {{ severity_labels[severity] }}
+      </label>
+      {% endfor %}
+      <p class="hint">Если не выбрать ни один уровень, находки вердикт не блокируют.</p>
+    </fieldset>
+
+    <label for="fail_mode">Режим деградации</label>
+    <select id="fail_mode" name="fail_mode">
+      {% for mode, label in fail_mode_labels.items() %}
+      <option value="{{ mode }}"{% if policy_values.fail_mode == mode %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <p class="hint">Что делать, если сканер упал или не уложился в таймаут.</p>
+
+    <label for="scanner_timeout_sec">Таймаут сканеров, секунд</label>
+    <input id="scanner_timeout_sec" name="scanner_timeout_sec" type="number" min="1"
+           value="{{ policy_values.scanner_timeout_sec }}" required>
+
+    <button type="submit">Сохранить политику</button>
+  </form>
+</section>

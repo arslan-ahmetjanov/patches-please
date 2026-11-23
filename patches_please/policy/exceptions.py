@@ -166,6 +166,22 @@ def active_exceptions(
     return list(session.scalars(statement))
 
 
+def list_exceptions(session: Session, project_id: uuid.UUID) -> list[ExceptionRecord]:
+    """Все исключения проекта, включая истёкшие и отозванные, свежие сверху.
+
+    Странице настроек (T-024) нужна история целиком: отозванное исключение
+    остаётся видимым, иначе пропало бы объяснение, почему находка снова влияет
+    на вердикт. Активность здесь не вычисляется — её определяет вызывающий
+    по `expires_at` и `revoked_at`.
+    """
+    statement = (
+        select(ExceptionRecord)
+        .where(ExceptionRecord.project_id == project_id)
+        .order_by(ExceptionRecord.created_at.desc(), ExceptionRecord.id)
+    )
+    return list(session.scalars(statement))
+
+
 def is_excluded(
     finding: Finding,
     exceptions: Iterable[ExceptionRecord],

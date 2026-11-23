@@ -61,6 +61,7 @@
   <header>
     <strong>Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
+    {% if is_owner %}<a href="/projects/{{ project.slug }}/settings">Настройки</a>{% endif %}
     <span class="spacer"></span>
     <span>{{ user.email }}</span>
     <form method="post" action="/logout">

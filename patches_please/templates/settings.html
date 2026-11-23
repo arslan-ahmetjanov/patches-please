@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Настройки {{ project.name }} — Patches, Please</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: Canvas;
+      color: CanvasText;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid currentColor;
+    }
+    header .spacer { flex: 1; }
+    header form { margin: 0; }
+    header a { color: inherit; }
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .muted { font-size: 0.9rem; }
+    p.muted { margin: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
+    th { font-weight: 600; }
+    code { font-size: 0.85rem; }
+    .empty {
+      margin: 0;
+      padding: 1rem;
+      border: 1px dashed currentColor;
+      border-radius: 0.25rem;
+    }
+    .error {
+      margin: 0 0 1rem;
+      padding: 0.5rem;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      font-size: 0.9rem;
+    }
+    .settings-form { display: grid; gap: 0.25rem; max-width: 32rem; margin-bottom: 1.5rem; }
+    fieldset {
+      margin: 0 0 0.5rem;
+      padding: 0.5rem 0.75rem 0.25rem;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      display: grid;
+      gap: 0.25rem;
+    }
+    legend { padding: 0 0.25rem; font-size: 0.9rem; }
+    label { font-size: 0.9rem; }
+    label.check { display: flex; align-items: center; gap: 0.5rem; }
+    label.check input { margin: 0; }
+    input, select, textarea {
+      box-sizing: border-box;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+      font: inherit;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      background: Field;
+      color: FieldText;
+    }
+    textarea { resize: vertical; }
+    .hint { margin: -0.25rem 0 0.75rem; font-size: 0.8rem; }
+    button {
+      padding: 0.5rem 1rem;
+      font: inherit;
+      border: 0;
+      border-radius: 0.25rem;
+      background: Highlight;
+      color: HighlightText;
+      cursor: pointer;
+    }
+    button.link {
+      padding: 0.25rem 0.5rem;
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+    }
+    td form { margin: 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Patches, Please</strong>
+    <a href="/projects">Мои проекты</a>
+    <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
+    <span class="spacer"></span>
+    <span>{{ user.email }}</span>
+    <form method="post" action="/logout">
+      <button type="submit" class="link">Выйти</button>
+    </form>
+  </header>
+  <main>
+    <section>
+      <p class="muted"><a href="/projects/{{ project.slug }}">{{ project.name }}</a> · настройки</p>
+      <h1>Настройки</h1>
+      <p class="muted">Проект <code>{{ project.slug }}</code>. Настройки меняет владелец проекта.</p>
+    </section>
+
+    {% include "policy_form.html" %}
+
+    <section id="exceptions">
+      <h2>Исключения находок</h2>
+      <p class="muted">
+        Исключение снимает находку своего правила и подходящего пути с вердикта
+        до указанного срока. Действие попадает в журнал аудита.
+      </p>
+
+      {% if exception_error %}
+      <p class="error" role="alert">{{ exception_error }}</p>
+      {% endif %}
+
+      <form class="settings-form" method="post" action="/projects/{{ project.slug }}/settings/exceptions">
+        <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+
+        <label for="rule_id">Правило</label>
+        <input id="rule_id" name="rule_id" type="text" maxlength="255"
+               value="{{ exception_values.rule_id }}" required>
+        <p class="hint">Идентификатор правила точно как в находке.</p>
+
+        <label for="path_glob">Путь</label>
+        <input id="path_glob" name="path_glob" type="text" value="{{ exception_values.path_glob }}" required>
+        <p class="hint">Шаблон сопоставления: <code>*</code> совпадает и с вложенными каталогами.</p>
+
+        <label for="reason">Причина</label>
+        <textarea id="reason" name="reason" rows="3" required>{{ exception_values.reason }}</textarea>
+
+        <label for="expires_at">Срок действия (UTC)</label>
+        <input id="expires_at" name="expires_at" type="datetime-local"
+               value="{{ exception_values.expires_at }}" required>
+        <p class="hint">Время указывается в UTC. После этого момента находка снова влияет на вердикт.</p>
+
+        <button type="submit">Добавить исключение</button>
+      </form>
+
+      {% if exception_views %}
+      <table>
+        <thead>
+          <tr>
+            <th>Правило</th>
+            <th>Путь</th>
+            <th>Причина</th>
+            <th>Автор</th>
+            <th>Срок (UTC)</th>
+            <th>Состояние</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in exception_views %}
+          <tr>
+            <td><code>{{ row.rule_id }}</code></td>
+            <td><code>{{ row.path_glob }}</code></td>
+            <td>{{ row.reason }}</td>
+            <td>{{ row.author_email }}</td>
+            <td>{{ row.expires_at.strftime("%d.%m.%Y %H:%M") }}</td>
+            <td>{{ exception_status_labels.get(row.status, row.status) }}</td>
+            <td>
+              {% if row.status != "revoked" %}
+              <form method="post" action="/projects/{{ project.slug }}/settings/exceptions/{{ row.id }}/revoke">
+                <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+                <button type="submit" class="link">Отозвать</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">Исключений нет: все находки учитываются в вердикте.</p>
+      {% endif %}
+    </section>
+  </main>
+</body>
+</html>
