@@ -13,8 +13,11 @@ fingerprint, не зависящий ни от номера строки, ни �
 полями: молча пропущенный результат исказил бы вердикт (FR-004). Текст ошибки
 не содержит содержимого JSON — там могут оказаться секреты (NFR-004).
 
-Границы: маскирование секретов — T-021, классификация `new`/`existing`/`fixed`
-и baseline — T-014, сохранение в БД и отчёты — T-014/T-020.
+Fingerprint считается по исходному фрагменту до маскирования, поэтому baseline
+не зависит от того, скрыт ли текст секрета в сообщении (T-021, NFR-004).
+
+Границы: классификация `new`/`existing`/`fixed` и baseline — T-014, сохранение
+в БД и отчёты — T-014/T-020.
 """
 
 import json
@@ -22,6 +25,7 @@ from pathlib import Path
 from typing import Final
 
 from patches_please.normalize.fingerprint import compute_fingerprint, deduplicate
+from patches_please.normalize.mask import mask_finding
 from patches_please.normalize.model import Finding, FindingType, Severity
 from patches_please.scanners.base import ScannerRun, ScannerStatus
 
@@ -133,21 +137,28 @@ def _results(document: dict[str, object]) -> list[dict[str, object]]:
 def _build_finding(
     result: dict[str, object], scanner: str, finding_type: FindingType, workdir: Path
 ) -> Finding:
-    """Собирает находку из одного result и считает её fingerprint."""
+    """Собирает находку, считает fingerprint и маскирует сообщение секрета.
+
+    Fingerprint считается до маскирования: он обязан оставаться тем же, что и
+    по исходному тексту, иначе baseline прошлых прогонов перестанет совпадать
+    (T-021, FR-006).
+    """
     rule_id = _rule_id(result)
     message_text = _message_text(result)
     path, line, snippet_text = _location(result, workdir)
     message = message_text or snippet_text or rule_id
     snippet = snippet_text or message_text or rule_id
-    return Finding(
-        scanner=scanner,
-        rule_id=rule_id,
-        severity=_severity(result),
-        path=path,
-        line=line,
-        message=message,
-        finding_type=finding_type,
-        fingerprint=compute_fingerprint(scanner, rule_id, path, snippet),
+    return mask_finding(
+        Finding(
+            scanner=scanner,
+            rule_id=rule_id,
+            severity=_severity(result),
+            path=path,
+            line=line,
+            message=message,
+            finding_type=finding_type,
+            fingerprint=compute_fingerprint(scanner, rule_id, path, snippet),
+        )
     )
 
 
