@@ -66,6 +66,66 @@ paths:
               description: Пустое значение `pp_session` с истёкшим сроком.
               schema:
                 type: string
+  /api/v1/projects/{project_id}/policy:
+    put:
+      tags:
+      - политика
+      summary: Задать политику проекта
+      description: 'Создаёт или заменяет политику проекта целиком: набор блокирующих уровней severity, режим деградации и таймаут сканеров.
+
+
+        Вердикт `fail` получает прогон, где есть новая неисключённая находка блокирующего уровня; иначе `pass`. Пока политика не задана, блокируются `critical` и `high`.
+
+
+        Доступ — только владелец проекта (`owner`). Участник получает 403, посторонний — 404. Неизвестный уровень severity — 422.'
+      operationId: api_put_policy_api_v1_projects__project_id__policy_put
+      parameters:
+      - name: project_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Project Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyUpdate'
+      responses:
+        '200':
+          description: Политика сохранена; ответ содержит действующие значения.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        '401':
+          description: Нет действующей сессии.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Пользователь участник проекта, но не его владелец.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Проект не найден или пользователь не его участник.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - cookieAuth: []
   /api/v1/projects:
     get:
       tags:
@@ -422,6 +482,13 @@ components:
       - detail
       title: ErrorResponse
       description: Ошибка запроса в едином формате.
+    FailMode:
+      type: string
+      enum:
+      - open
+      - closed
+      title: FailMode
+      description: Поведение при деградировавшем сканере (FR-013); читает T-019.
     HTTPValidationError:
       properties:
         detail:
@@ -459,6 +526,55 @@ components:
       - password
       title: LoginRequest
       description: Учётные данные для входа в интерфейс.
+    PolicyResponse:
+      properties:
+        project_id:
+          type: string
+          format: uuid
+          title: Project Id
+        block_severities:
+          items:
+            $ref: '#/components/schemas/Severity'
+          type: array
+          title: Block Severities
+        fail_mode:
+          $ref: '#/components/schemas/FailMode'
+        scanner_timeout_sec:
+          type: integer
+          title: Scanner Timeout Sec
+      type: object
+      required:
+      - project_id
+      - block_severities
+      - fail_mode
+      - scanner_timeout_sec
+      title: PolicyResponse
+      description: 'Действующая политика проекта: то, что записано в `policies`.'
+    PolicyUpdate:
+      properties:
+        block_severities:
+          items:
+            $ref: '#/components/schemas/Severity'
+          type: array
+          title: Block Severities
+        fail_mode:
+          $ref: '#/components/schemas/FailMode'
+          default: open
+        scanner_timeout_sec:
+          type: integer
+          minimum: 1.0
+          title: Scanner Timeout Sec
+          default: 300
+      type: object
+      required:
+      - block_severities
+      title: PolicyUpdate
+      description: 'Полная замена политики: `PUT` перезаписывает все поля строки.
+
+
+        Пустой `block_severities` допустим: политика, которая ничего не блокирует.
+
+        Неизвестный уровень отсекается схемой и даёт 422.'
     ProjectCreate:
       properties:
         name:
@@ -596,6 +712,16 @@ components:
       - error
       title: ScanStatus
       description: 'Статусы прогона из плана: переходы по ним вводит T-009.'
+    Severity:
+      type: string
+      enum:
+      - critical
+      - high
+      - medium
+      - low
+      - info
+      title: Severity
+      description: Единая шкала важности находки для политики и отчёта (FR-014).
     TokenCreate:
       properties:
         name:
@@ -712,7 +838,7 @@ components:
       - pass
       - fail
       title: Verdict
-      description: Вердикт по политике проекта (FR-004); до T-017 остаётся `null`.
+      description: 'Вердикт по политике проекта (FR-004): ровно два значения.'
   securitySchemes:
     cookieAuth:
       type: apiKey

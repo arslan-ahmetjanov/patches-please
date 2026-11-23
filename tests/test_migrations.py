@@ -1,5 +1,5 @@
 """Миграции Alembic: один head, таблицы схемы, обратимость
-(T-002, T-006, T-008, T-014, T-015, NFR-005).
+(T-002, T-006, T-008, T-014, T-015, T-017, NFR-005).
 
 Тест работает без базы: Alembic в офлайн-режиме генерирует SQL, который он применил
 бы к PostgreSQL. Это проверяет и upgrade, и downgrade на каждой машине и в CI.
@@ -37,7 +37,7 @@ def test_t_002_single_head() -> None:
     """В репозитории ровно одна голова: миграции линейны и применяются по порядку."""
     heads = ScriptDirectory.from_config(_config()).get_heads()
 
-    assert heads == ["0006"]
+    assert heads == ["0007"]
 
 
 def test_t_002_upgrade_creates_users_and_sessions() -> None:
@@ -194,3 +194,27 @@ def test_t_015_downgrade_drops_both_tables_before_users() -> None:
     exceptions_drop = sql.index("DROP TABLE exceptions")
     users_drop = sql.index("DROP TABLE users")
     assert audit_drop < exceptions_drop < users_drop
+
+
+def test_t_017_upgrade_creates_policies() -> None:
+    """Седьмая миграция добавляет политики: пороги, режим и таймаут."""
+    sql = _offline_sql("upgrade", "head")
+
+    assert "CREATE TABLE policies" in sql
+    for column in ("project_id", "block_severities", "fail_mode", "scanner_timeout_sec"):
+        assert column in sql
+    assert "block_severities VARCHAR(10)[] DEFAULT '{critical,high}'::varchar[] NOT NULL" in sql
+    assert "fail_mode VARCHAR(20) DEFAULT 'open' NOT NULL" in sql
+    assert "scanner_timeout_sec INTEGER DEFAULT 300 NOT NULL" in sql
+    # Политика уходит вместе с проектом; отдельного идентификатора нет.
+    assert "PRIMARY KEY (project_id)" in sql
+    assert "ON DELETE CASCADE" in sql
+
+
+def test_t_017_downgrade_drops_policies_before_projects() -> None:
+    """Downgrade удаляет политики раньше проектов, на которые они ссылаются."""
+    sql = _offline_sql("downgrade", "head:base")
+
+    policies_drop = sql.index("DROP TABLE policies")
+    projects_drop = sql.index("DROP TABLE projects")
+    assert policies_drop < projects_drop

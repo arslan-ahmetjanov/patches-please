@@ -15,6 +15,7 @@ from patches_please.api import build_openapi_schema
 from patches_please.auth.dependencies import LoginRequiredError
 from patches_please.auth.router import api_router as auth_api_router
 from patches_please.auth.router import html_router as auth_html_router
+from patches_please.policy.router import api_router as policy_api_router
 from patches_please.projects.router import api_router as projects_api_router
 from patches_please.projects.router import html_router as projects_html_router
 from patches_please.scans.router import api_router as scans_api_router
@@ -32,6 +33,7 @@ app.openapi = partial(build_openapi_schema, app)  # type: ignore[method-assign]
 
 app.include_router(auth_api_router)
 app.include_router(auth_html_router)
+app.include_router(policy_api_router)
 app.include_router(projects_api_router)
 app.include_router(projects_html_router)
 app.include_router(tokens_api_router)

@@ -25,6 +25,7 @@ BEARER_SCHEME: Final = "bearerAuth"
 COOKIE_PROTECTED_OPERATIONS: Final = (
     ("get", "/api/v1/projects"),
     ("post", "/api/v1/projects"),
+    ("put", "/api/v1/projects/{project_id}/policy"),
     ("get", "/api/v1/projects/{project_id}/tokens"),
     ("post", "/api/v1/projects/{project_id}/tokens"),
     ("delete", "/api/v1/projects/{project_id}/tokens/{token_id}"),

@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session
 
 from patches_please.auth.dependencies import DbSession
 from patches_please.auth.router import ErrorResponse
+from patches_please.policy.verdict import Verdict
 from patches_please.scans import queue as scan_queue
 from patches_please.scans.models import Scan
 from patches_please.scans.queue import get_scan_queue
@@ -56,13 +57,6 @@ class Provider(StrEnum):
 
     GITHUB = "github"
     GITLAB = "gitlab"
-
-
-class Verdict(StrEnum):
-    """Вердикт по политике проекта (FR-004); до T-017 остаётся `null`."""
-
-    PASS = "pass"
-    FAIL = "fail"
 
 
 class ScanCreate(BaseModel):
