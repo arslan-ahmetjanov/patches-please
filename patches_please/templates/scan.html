@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Прогон {{ scan.commit_sha[:12] }} — Patches, Please</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: Canvas;
+      color: CanvasText;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid currentColor;
+    }
+    header .spacer { flex: 1; }
+    header form { margin: 0; }
+    header a { color: inherit; }
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .muted { font-size: 0.9rem; }
+    p.muted { margin: 0; }
+    dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1.5rem; margin: 0; }
+    dt { font-size: 0.9rem; }
+    dd { margin: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
+    th { font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    code { font-size: 0.85rem; }
+    .empty {
+      margin: 0;
+      padding: 1rem;
+      border: 1px dashed currentColor;
+      border-radius: 0.25rem;
+    }
+    .verdict { font-weight: 600; }
+    .verdict.fail { text-decoration: underline double; }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 1rem;
+      margin: 0 0 1rem;
+    }
+    .filters label { display: grid; gap: 0.25rem; font-size: 0.9rem; }
+    .filters select, .filters button { font: inherit; padding: 0.3rem 0.5rem; }
+    .filters a { align-self: center; }
+    button.link {
+      padding: 0.25rem 0.5rem;
+      font: inherit;
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Patches, Please</strong>
+    <a href="/projects">Мои проекты</a>
+    <span class="spacer"></span>
+    <span>{{ user.email }}</span>
+    <form method="post" action="/logout">
+      <button type="submit" class="link">Выйти</button>
+    </form>
+  </header>
+  <main>
+    <section id="scan">
+      <p class="muted">
+        <a href="/projects/{{ project.slug }}">{{ project.name }}</a> · прогон
+      </p>
+      <h1>Прогон <code>{{ scan.commit_sha[:12] }}</code></h1>
+      <dl>
+        <dt>Проект</dt>
+        <dd><a href="/projects/{{ project.slug }}">{{ project.name }}</a> · <code>{{ project.slug }}</code></dd>
+        <dt>Коммит</dt>
+        <dd><code title="{{ scan.commit_sha }}">{{ scan.commit_sha }}</code></dd>
+        <dt>Ветка</dt>
+        <dd><code>{{ scan.ref }}</code></dd>
+        <dt>Провайдер</dt>
+        <dd>{{ scan.provider }}</dd>
+        <dt>Прогон</dt>
+        <dd><code>{{ scan.id }}</code></dd>
+        <dt>Статус</dt>
+        <dd>
+          {% if scan.verdict %}
+          <span class="verdict {% if scan.verdict == 'fail' %}fail{% endif %}">{{ verdict_labels.get(scan.verdict, scan.verdict) }}</span>
+          {% else %}
+          {{ status_labels.get(scan.status, scan.status) }}
+          {% endif %}
+        </dd>
+        <dt>Начало</dt>
+        <dd>{% if scan.started_at %}{{ scan.started_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}—{% endif %}</dd>
+        <dt>Завершение</dt>
+        <dd>{% if scan.finished_at %}{{ scan.finished_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}—{% endif %}</dd>
+      </dl>
+      {% if view.metrics %}
+      <p class="muted">
+        Находок в прогоне: {{ view.metrics_total }}, новых: {{ view.metrics.new }},
+        исправленных: {{ view.metrics.fixed }},
+        исключённых: {{ "%.1f"|format(view.metrics.excluded_ratio * 100) }} %.
+      </p>
+      {% elif scan.status == "done" %}
+      <p class="muted">Метрики прогона недоступны: запись <code>scans.timings</code> отсутствует или повреждена.</p>
+      {% endif %}
+    </section>
+
+    {% if view.empty_message %}
+    <p class="empty">
+      {{ view.empty_message }}
+      {% if scan.status == "error" and scan.error %}Причина: {{ scan.error }}{% endif %}
+    </p>
+    {% else %}
+    <section id="findings">
+      <h2>Находки</h2>
+      {% if view.findings_total %}
+      <form class="filters" method="get" action="/projects/{{ project.slug }}/scans/{{ scan.id }}">
+        <label>
+          Важность
+          <select name="severity">
+            <option value="">все</option>
+            {% for key in severity_keys %}
+            <option value="{{ key }}"{% if severity == key %} selected{% endif %}>{{ severity_labels[key] }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Состояние
+          <select name="state">
+            <option value="">все</option>
+            {% for key in state_keys %}
+            <option value="{{ key }}"{% if state == key %} selected{% endif %}>{{ state_labels[key] }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">Показать</button>
+        {% if severity or state %}
+        <a href="/projects/{{ project.slug }}/scans/{{ scan.id }}">Сбросить</a>
+        {% endif %}
+      </form>
+      <p class="muted">Показано {{ view.findings|length }} из {{ view.findings_total }}.</p>
+      {% endif %}
+      {% if view.findings %}
+      <table>
+        <thead>
+          <tr>
+            <th>Важность</th>
+            <th>Правило</th>
+            <th>Файл</th>
+            <th class="num">Строка</th>
+            <th>Тип</th>
+            <th>Сканер</th>
+            <th>Состояние</th>
+            <th>Исключена</th>
+            <th>Сообщение</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for finding in view.findings %}
+          <tr>
+            <td>{{ severity_labels.get(finding.severity, finding.severity) }}</td>
+            <td><code>{{ finding.rule_id }}</code></td>
+            <td><code>{{ finding.path }}</code></td>
+            <td class="num">{{ finding.line }}</td>
+            <td>{{ finding.finding_type }}</td>
+            <td>{{ finding.scanner }}</td>
+            <td>{{ state_labels.get(finding.state, finding.state) }}</td>
+            <td>{% if finding.excluded %}да{% else %}—{% endif %}</td>
+            <td>{{ finding.message }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% elif view.findings_total %}
+      <p class="empty">По фильтру ничего не найдено.</p>
+      {% else %}
+      <p class="empty">Находок нет.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+  </main>
+</body>
+</html>

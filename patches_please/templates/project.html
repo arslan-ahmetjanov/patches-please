@@ -97,7 +97,9 @@
         <tbody>
           {% for run in dashboard.recent_runs %}
           <tr>
-            <td><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></td>
+            <td>
+              <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
+            </td>
             <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
             <td>
               {% if run.status == "done" %}
@@ -133,7 +135,7 @@
           {% for run in dashboard.trend_runs %}
           <tr>
             <td>
-              <code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code>
+              <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
               <span class="muted"> · {{ run.date.strftime("%d.%m.%Y %H:%M") }}</span>
             </td>
             {% for severity in severity_keys %}
