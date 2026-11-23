@@ -20,6 +20,7 @@ from patches_please.projects.router import api_router as projects_api_router
 from patches_please.projects.router import html_router as projects_html_router
 from patches_please.scans.router import api_router as scans_api_router
 from patches_please.tokens.router import api_router as tokens_api_router
+from patches_please.web.router import html_router as web_html_router
 
 app = FastAPI(
     title="Patches, Please",
@@ -38,6 +39,7 @@ app.include_router(projects_api_router)
 app.include_router(projects_html_router)
 app.include_router(tokens_api_router)
 app.include_router(scans_api_router)
+app.include_router(web_html_router)
 
 
 @app.exception_handler(LoginRequiredError)

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ project.name }} — Patches, Please</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      margin: 0;
+      background: Canvas;
+      color: CanvasText;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 2rem;
+      border-bottom: 1px solid currentColor;
+    }
+    header .spacer { flex: 1; }
+    header form { margin: 0; }
+    header a { color: inherit; }
+    main {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      gap: 2rem;
+    }
+    h1 { margin: 0 0 0.25rem; font-size: 1.5rem; }
+    h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .muted { font-size: 0.9rem; }
+    p.muted { margin: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.45rem 0.7rem; border-bottom: 1px solid currentColor; text-align: left; }
+    th { font-weight: 600; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    code { font-size: 0.85rem; }
+    .empty {
+      margin: 0;
+      padding: 1rem;
+      border: 1px dashed currentColor;
+      border-radius: 0.25rem;
+    }
+    .verdict { font-weight: 600; }
+    .verdict.fail { text-decoration: underline double; }
+    button.link {
+      padding: 0.25rem 0.5rem;
+      font: inherit;
+      background: transparent;
+      color: inherit;
+      border: 1px solid currentColor;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Patches, Please</strong>
+    <a href="/projects">Мои проекты</a>
+    <span class="spacer"></span>
+    <span>{{ user.email }}</span>
+    <form method="post" action="/logout">
+      <button type="submit" class="link">Выйти</button>
+    </form>
+  </header>
+  <main>
+    <section>
+      <h1>{{ project.name }}</h1>
+      <p class="muted">
+        <code>{{ project.slug }}</code>
+        {% if project.repo_url %} · {{ project.repo_url }}{% endif %}
+        · ветка {{ project.default_branch }}
+      </p>
+    </section>
+
+    {% if not dashboard.recent_runs %}
+    <p class="empty">По проекту ещё нет прогонов. Запустите проверку из CI — история появится здесь.</p>
+    {% else %}
+    <section>
+      <h2>Последние прогоны</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Коммит</th>
+            <th>Дата</th>
+            <th>Вердикт</th>
+            {% for severity in severity_keys %}
+            <th class="num">{{ severity_labels[severity] }}</th>
+            {% endfor %}
+            <th class="num">Всего</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in dashboard.recent_runs %}
+          <tr>
+            <td><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></td>
+            <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
+            <td>
+              {% if run.status == "done" %}
+              <span class="verdict {% if run.verdict == 'fail' %}fail{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "—") }}</span>
+              {% else %}
+              {{ status_labels.get(run.status, run.status) }}
+              {% endif %}
+            </td>
+            {% for severity in severity_keys %}
+            <td class="num">{% if run.counts %}{{ run.counts[severity] }}{% else %}—{% endif %}</td>
+            {% endfor %}
+            <td class="num">{% if run.total is not none %}{{ run.total }}{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    {% if dashboard.trend_runs %}
+    <section>
+      <h2>Тренд находок по важности</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Прогон</th>
+            {% for severity in severity_keys %}
+            <th class="num">{{ severity_labels[severity] }}</th>
+            {% endfor %}
+            <th class="num">Всего</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for run in dashboard.trend_runs %}
+          <tr>
+            <td>
+              <code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code>
+              <span class="muted"> · {{ run.date.strftime("%d.%m.%Y %H:%M") }}</span>
+            </td>
+            {% for severity in severity_keys %}
+            <td class="num">{{ run.counts[severity] }}</td>
+            {% endfor %}
+            <td class="num">{{ run.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Топ-5 правил</h2>
+      {% if dashboard.top_rules %}
+      <table>
+        <thead>
+          <tr>
+            <th>№</th>
+            <th>Правило</th>
+            <th>Сканер</th>
+            <th class="num">Находок</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rule in dashboard.top_rules %}
+          <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td><code>{{ rule.rule_id }}</code></td>
+            <td>{{ rule.scanner }}</td>
+            <td class="num">{{ rule.count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="muted">Находок в завершённых прогонах нет.</p>
+      {% endif %}
+    </section>
+    {% else %}
+    <p class="empty">Завершённых прогонов пока нет: тренд и топ правил появятся после первого завершённого прогона.</p>
+    {% endif %}
+    {% endif %}
+  </main>
+</body>
+</html>

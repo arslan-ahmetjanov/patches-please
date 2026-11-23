@@ -108,7 +108,7 @@
       <tbody>
         {% for project in projects %}
         <tr>
-          <td>{{ project.name }}</td>
+          <td><a href="/projects/{{ project.slug }}">{{ project.name }}</a></td>
           <td><code>{{ project.slug }}</code></td>
           <td>{% if project.repo_url %}{{ project.repo_url }}{% else %}—{% endif %}</td>
           <td>{{ project.default_branch }}</td>
