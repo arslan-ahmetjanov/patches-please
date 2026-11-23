@@ -1,4 +1,5 @@
-"""Миграции Alembic: один head, таблицы схемы, обратимость (T-002, T-006, T-008, T-014, NFR-005).
+"""Миграции Alembic: один head, таблицы схемы, обратимость
+(T-002, T-006, T-008, T-014, T-015, NFR-005).
 
 Тест работает без базы: Alembic в офлайн-режиме генерирует SQL, который он применил
 бы к PostgreSQL. Это проверяет и upgrade, и downgrade на каждой машине и в CI.
@@ -36,7 +37,7 @@ def test_t_002_single_head() -> None:
     """В репозитории ровно одна голова: миграции линейны и применяются по порядку."""
     heads = ScriptDirectory.from_config(_config()).get_heads()
 
-    assert heads == ["0005"]
+    assert heads == ["0006"]
 
 
 def test_t_002_upgrade_creates_users_and_sessions() -> None:
@@ -158,3 +159,38 @@ def test_t_014_downgrade_drops_in_reverse_order() -> None:
     scans_drop = sql.index("DROP TABLE scans")
     assert index_drop < findings_drop < items_drop < baselines_drop
     assert findings_drop < scans_drop
+
+
+def test_t_015_upgrade_creates_exceptions_and_audit_events() -> None:
+    """Шестая миграция добавляет исключения и журнал: срок, автор, payload jsonb."""
+    sql = _offline_sql("upgrade", "head")
+
+    assert "CREATE TABLE exceptions" in sql
+    assert "CREATE TABLE audit_events" in sql
+    for column in (
+        "project_id",
+        "rule_id",
+        "path_glob",
+        "reason",
+        "author_id",
+        "expires_at",
+        "revoked_at",
+    ):
+        assert column in sql
+    for column in ("actor", "action", "entity", "payload"):
+        assert column in sql
+    # Исключения уходят вместе с проектом, журнал переживает удаление актора.
+    assert "ON DELETE CASCADE" in sql
+    assert "ON DELETE SET NULL" in sql
+    assert "payload JSONB" in sql
+    assert "'{}'::jsonb" in sql
+
+
+def test_t_015_downgrade_drops_both_tables_before_users() -> None:
+    """Downgrade снимает журнал и исключения раньше учётных записей."""
+    sql = _offline_sql("downgrade", "head:base")
+
+    audit_drop = sql.index("DROP TABLE audit_events")
+    exceptions_drop = sql.index("DROP TABLE exceptions")
+    users_drop = sql.index("DROP TABLE users")
+    assert audit_drop < exceptions_drop < users_drop

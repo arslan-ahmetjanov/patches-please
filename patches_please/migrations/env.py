@@ -12,6 +12,7 @@ from alembic import context
 from sqlalchemy import Connection
 
 from patches_please import db
+from patches_please.audit import models as audit_models  # noqa: F401 — то же для audit_events
 from patches_please.auth import models  # noqa: F401 — регистрирует таблицы в Base.metadata
 from patches_please.policy import models as policy_models  # noqa: F401 — то же для baseline
 from patches_please.projects import models as project_models  # noqa: F401 — то же для projects
