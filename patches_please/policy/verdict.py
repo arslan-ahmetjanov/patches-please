@@ -9,10 +9,16 @@
 из baseline не блокируют (FR-006, S-003), исключённые — тоже (FR-011, S-005),
 но остаются в отчёте. Значений ровно два — `pass` и `fail` (FR-004).
 
+Блокирующая находка — новая находка уровня из политики проекта, не снятая
+исключением (FR-005, S-002). Список таких находок отдаёт `blocking_findings`:
+по нему же выносится вердикт, и его покажет отчёт (T-020) — разработчик видит
+правило, файл и строку, а не только слово `fail`.
+
 `apply_exceptions` проставляет `findings.excluded` по действующим исключениям
 проекта, `save_verdict` пишет `scans.verdict` — по образцу `save_metrics` из
 `patches_please/metrics/service.py`: расчёт отдельно, запись отдельно.
-Встраивание в обработку прогона — T-018/T-020, здесь только расчёт и запись.
+Встраивание в обработку прогона — оркестрация воркера (T-038), здесь только
+расчёт и запись.
 
 `Verdict` объявлен в этом модуле: имя компонента контракта (`Verdict`) не
 меняется, а роутер прогонов импортирует его отсюда.
@@ -146,20 +152,37 @@ def apply_exceptions(
     return excluded
 
 
+def blocking_findings(
+    records: Iterable[FindingRecord],
+    block_severities: Iterable[Severity],
+) -> list[FindingRecord]:
+    """Новые неисключённые находки блокирующих уровней (FR-005, S-002).
+
+    Это и есть причина вердикта `fail`: тот же предикат, что у
+    `compute_verdict`, но списком — отчёту (T-020) нужны правило, файл и строка,
+    а не только слово `fail`. Порядок входа сохраняется, данные не меняются.
+    """
+    blocking = {str(severity) for severity in block_severities}
+    return [
+        record
+        for record in records
+        if record.state == FindingState.NEW and not record.excluded and record.severity in blocking
+    ]
+
+
 def compute_verdict(
     records: Iterable[FindingRecord],
     block_severities: Iterable[Severity],
 ) -> Verdict:
-    """Вердикт по находкам прогона: `fail` при новой неисключённой находке.
+    """Вердикт по находкам прогона: `fail`, если есть блокирующая находка.
 
     Блокирующими считаются уровни из политики проекта (FR-014). Находки
     `existing` (база сравнения) и `excluded` (действующее исключение) вердикт
-    не меняют (FR-006, FR-011). Чистая функция: данные не меняются.
+    не меняют (FR-006, FR-011); состав блокирующих задаёт `blocking_findings`.
+    Чистая функция: данные не меняются.
     """
-    blocking = {str(severity) for severity in block_severities}
-    for record in records:
-        if record.state == FindingState.NEW and not record.excluded and record.severity in blocking:
-            return Verdict.FAIL
+    if blocking_findings(records, block_severities):
+        return Verdict.FAIL
     return Verdict.PASS
 
 
