@@ -1,0 +1,25 @@
+# Пайплайн GitLab CI репозитория patches-please (T-027).
+# Шаблон job лежит в ci/gitlab/patches-please.yml и не дублирует логику клиента:
+# он ставит CLI и делает один `patches-please scan --wait`.
+#
+# Адрес сервиса и токен проекта задаются в Settings → CI/CD → Variables:
+#   PATCHES_PLEASE_URL   — видимая переменная, например https://patches.example.ru
+#   PATCHES_PLEASE_TOKEN — masked и protected, значение вида pp_...
+#   PATCHES_PLEASE_CLI_TOKEN — masked и protected, если репозиторий клиента
+#                              приватный; токен на чтение, для публичного не нужен.
+# В этом файле их нет: токен не хранится в репозитории.
+include:
+  - local: ci/gitlab/patches-please.yml
+
+stages:
+  - test
+
+# Запуск ручной: пока сервис не развёрнут, прогон не пройдёт, а пайплайн на
+# каждый push падать не должен. allow_failure: true оставляет пайплайн зелёным;
+# после запуска job получает код клиента (0 — pass, 1 — fail) и краснеет при
+# fail, но пайплайн из-за allow_failure остаётся успешным.
+patches-please:
+  extends: .patches-please
+  stage: test
+  when: manual
+  allow_failure: true

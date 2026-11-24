@@ -1,0 +1,88 @@
+# Шаблон job GitLab CI для Patches, Please (T-027, FR-019…FR-021, FR-033).
+#
+# Шаблон ставит тот же CLI patches-please, что и действие GitHub, и делает
+# ровно один вызов `patches-please scan --wait`. Ожидание, повторы и перевод
+# вердикта в код выхода — работа клиента (delta-008): своего цикла опроса
+# и `|| true` здесь нет, поэтому код выхода job равен коду клиента.
+#
+# Подключается через include и extends (пример — .gitlab-ci.yml, инструкция —
+# docs/ci-gitlab.md). Адрес сервиса и токен проекта берутся из CI/CD-переменных
+# PATCHES_PLEASE_URL и PATCHES_PLEASE_TOKEN: в файле их значений нет. Если
+# репозиторий клиента приватный, добавьте masked-переменную
+# PATCHES_PLEASE_CLI_TOKEN с токеном на чтение (см. docs/ci-gitlab.md).
+.patches-please:
+  stage: test
+  image: python:3.12-slim
+  # Запас больше дедлайна клиента (900 с): установка uv и git, клон, sync.
+  timeout: 20m
+  variables:
+    PATCHES_PLEASE_CLI_REPO: "https://github.com/arslan-ahmetjanov/patches-please.git"
+    # Полный SHA коммита с клиентом (T-036). Тег тоже подойдёт, ветка — нет:
+    # шаблон должен ставиться на закреплённый ref, а не на плавающий main.
+    PATCHES_PLEASE_CLI_REF: "f01f3acb089d2dafb643c67c29d7a0c35642ebf9"
+    PATCHES_PLEASE_CLI_DIR: ".patches-please-cli"
+    PATCHES_PLEASE_TIMEOUT: "900"
+    # Терминал отключён: без askpass git не ждёт ввод учётных данных, а с
+    # PATCHES_PLEASE_CLI_TOKEN логин и пароль отдаёт GIT_ASKPASS.
+    GIT_TERMINAL_PROMPT: "0"
+  before_script:
+    # Входы проверяются до установки: пустой адрес или токен — ошибка настройки,
+    # и узнать о ней лучше сразу. Значение токена не печатается: в GitLab его
+    # маскирует настройка CI/CD-переменной (masked), а не сам шаблон.
+    - |
+      if [ -z "${PATCHES_PLEASE_URL:-}" ]; then
+        echo "не задана CI/CD-переменная PATCHES_PLEASE_URL: укажите адрес сервиса" >&2
+        exit 2
+      fi
+      if [ -z "${PATCHES_PLEASE_TOKEN:-}" ]; then
+        echo "не задана CI/CD-переменная PATCHES_PLEASE_TOKEN: укажите токен проекта pp_..." >&2
+        exit 2
+      fi
+    # git нужен для клона, ca-certificates — для HTTPS до GitHub и до сервиса.
+    - apt-get update
+    - apt-get install -y --no-install-recommends git ca-certificates
+    - rm -rf /var/lib/apt/lists/*
+    # uv ставится фиксированной версии: установка не зависит от содержимого образа.
+    - pip install --no-cache-dir "uv==0.13.9"
+    # Приватный репозиторий клиента: git спрашивает логин и пароль через
+    # GIT_ASKPASS, а не через URL. Токен живёт только в переменной окружения,
+    # поэтому не попадает ни в аргументы git, ни в вывод; в GitLab его скрывает
+    # masked. Для публичного репозитория переменная не нужна.
+    - |
+      if [ -n "${PATCHES_PLEASE_CLI_TOKEN:-}" ]; then
+        cat > "${HOME}/git-askpass.sh" <<'ASKPASS'
+      #!/bin/sh
+      case "$1" in
+        *Username*) printf '%s\n' "x-access-token" ;;
+        *Password*) printf '%s\n' "${PATCHES_PLEASE_CLI_TOKEN}" ;;
+      esac
+      ASKPASS
+        chmod +x "${HOME}/git-askpass.sh"
+        export GIT_ASKPASS="${HOME}/git-askpass.sh"
+      fi
+    # Клон на закреплённый ref: fetch по полному SHA, затем checkout FETCH_HEAD.
+    # Публикация в PyPI не нужна: клиент ставится из дерева репозитория,
+    # зависимости фиксированы uv.lock (--frozen), dev-группа не нужна (--no-dev).
+    - git init "${PATCHES_PLEASE_CLI_DIR}"
+    - git -C "${PATCHES_PLEASE_CLI_DIR}" remote add origin "${PATCHES_PLEASE_CLI_REPO}"
+    - git -C "${PATCHES_PLEASE_CLI_DIR}" fetch --depth 1 origin "${PATCHES_PLEASE_CLI_REF}"
+    - git -C "${PATCHES_PLEASE_CLI_DIR}" checkout --detach FETCH_HEAD
+    - uv sync --frozen --no-dev --project "${PATCHES_PLEASE_CLI_DIR}"
+  script:
+    # Единственный запуск проверки: без `|| true` и без собственного поллинга.
+    # 0 — pass, 1 — fail, 2…6 — сбой клиента или сервиса (см. docs/ci-gitlab.md).
+    # Последняя команда скрипта — клиент, поэтому его код выхода становится
+    # кодом выхода job: `fail` роняет job, `pass` пропускает.
+    - |
+      if [ -z "${CI_COMMIT_SHA:-}" ] || [ -z "${CI_COMMIT_REF_NAME:-}" ]; then
+        echo "не удалось определить коммит или ref: нужны CI_COMMIT_SHA и CI_COMMIT_REF_NAME" >&2
+        exit 2
+      fi
+      uv run --frozen --no-dev --project "${PATCHES_PLEASE_CLI_DIR}" patches-please scan \
+        --server "${PATCHES_PLEASE_URL}" \
+        --token "${PATCHES_PLEASE_TOKEN}" \
+        --provider gitlab \
+        --commit "${CI_COMMIT_SHA}" \
+        --ref "${CI_COMMIT_REF_NAME}" \
+        --wait \
+        --timeout "${PATCHES_PLEASE_TIMEOUT}"
