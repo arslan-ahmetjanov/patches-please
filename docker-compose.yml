@@ -27,7 +27,9 @@ services:
       start_period: 10s
 
   redis:
-    image: redis:7-alpine
+    # 7.2, а не плавающий 7-alpine: тег 7-alpine указывает на 7.4+ под
+    # RSALv2/SSPLv1, а 7.2 остаётся на BSD-3-Clause. См. docs/licenses.md (T-031).
+    image: redis:7.2-alpine
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
