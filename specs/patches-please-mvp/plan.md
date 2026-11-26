@@ -113,7 +113,7 @@ flowchart LR
 
 **SARIF.** Все три сканера умеют SARIF 2.1.0: `semgrep --sarif`, `gitleaks --report-format sarif`, `trivy --format sarif`. Один входной формат на все инструменты — это ключевое решение плана.
 
-**Веб-страницы:** `/login`, `/projects`, `/projects/{slug}`, `/projects/{slug}/scans/{scan_id}`, `/projects/{slug}/exceptions`, `/projects/{slug}/settings`. Серверный рендеринг Jinja2: фильтры — обычные GET-формы, тренд находок и топ правил — таблицы в том же шаблоне, сторонних JS-библиотек нет. Стили — один файл `patches_please/templates/static/brand.css`, значения берутся из [brand.md](../../docs/brand.md): палитра, два шрифта с кириллицей, штамп вердикта. Пиксельный шрифт допускается только в заголовках и штампе.
+**Веб-страницы:** `/login`, `/projects`, `/projects/{slug}`, `/projects/{slug}/scans/{scan_id}`, `/projects/{slug}/settings` — политика вердикта и исключения живут на странице настроек; отдельной страницы исключений нет. Серверный рендеринг Jinja2: фильтры — обычные GET-формы, тренд находок и топ правил — таблицы в том же шаблоне, сторонних JS-библиотек нет. Стили — один файл `patches_please/templates/static/brand.css`, значения берутся из [brand.md](../../docs/brand.md): палитра, два шрифта с кириллицей, штамп вердикта. Пиксельный шрифт допускается только в заголовках и штампе.
 
 ## Решения
 
