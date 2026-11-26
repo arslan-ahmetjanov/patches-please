@@ -59,12 +59,12 @@ runs:
         fi
         echo "::add-mask::${PROJECT_TOKEN}"
 
-    # Версия Python берётся из .python-version репозитория действия, чтобы
-    # установка CLI не зависела от того, что уже стоит на раннере.
-    - name: Установка Python и uv
+    # Версия Python не задаётся входом действия: `uv sync` читает
+    # `.python-version` корня и сам скачивает нужную версию. Вход
+    # `python-version-file` у setup-uv не существует — раннер писал
+    # предупреждение «Unexpected input(s)», а значение молча игнорировалось.
+    - name: Установка uv
       uses: astral-sh/setup-uv@v7
-      with:
-        python-version-file: ${{ github.action_path }}/../../../.python-version
 
     # Корень репозитория действия — три уровня вверх от .github/actions/patches-please.
     # Публикация в PyPI не нужна: пакет ставится из этого дерева, зависимости
