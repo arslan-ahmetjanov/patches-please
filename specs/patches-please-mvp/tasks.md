@@ -1,23 +1,24 @@
-# Задачи: Patches, Please — V1
+# Задачи: Patches, Please V1
 
-Легенда: `[P]` — можно делать параллельно. Порядок строк — порядок выполнения,
+Легенда: `[P]` значит, что можно делать параллельно. Строки идут в порядке выполнения,
 кроме T-034…T-037: они добавлены позже и идут первыми (см. «Порядок и сроки»),
 и T-038: она добавлена позже и идёт между T-019 и T-020.
 
-Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-004);
-[delta-002-tokens.md](delta-002-tokens.md) — FR-024, FR-025 (T-006);
-[delta-003-status.md](delta-003-status.md) — FR-026 (T-009);
-[delta-004-resilience.md](delta-004-resilience.md) — FR-027 (T-010);
-[delta-005-scanner-runner.md](delta-005-scanner-runner.md) — FR-028 (T-011);
-[delta-006-findings.md](delta-006-findings.md) — FR-029 (T-012);
-[delta-007-scanners.md](delta-007-scanners.md) — FR-030 (T-013);
-[delta-008-cli.md](delta-008-cli.md) — FR-031…FR-037, NFR-007 (T-036);
-[delta-009-baseline.md](delta-009-baseline.md) — FR-038 (T-014).
+Delta-спеки:
+- [delta-001-auth.md](delta-001-auth.md): FR-022, FR-023 (T-004);
+- [delta-002-tokens.md](delta-002-tokens.md): FR-024, FR-025 (T-006);
+- [delta-003-status.md](delta-003-status.md): FR-026 (T-009);
+- [delta-004-resilience.md](delta-004-resilience.md): FR-027 (T-010);
+- [delta-005-scanner-runner.md](delta-005-scanner-runner.md): FR-028 (T-011);
+- [delta-006-findings.md](delta-006-findings.md): FR-029 (T-012);
+- [delta-007-scanners.md](delta-007-scanners.md): FR-030 (T-013);
+- [delta-008-cli.md](delta-008-cli.md): FR-031…FR-037, NFR-007 (T-036);
+- [delta-009-baseline.md](delta-009-baseline.md): FR-038 (T-014).
 
 Пустой ID требования допускается только у T-034, T-035 и T-037: они меняют
 имена, упаковку и оформление, а поведение системы не меняется.
 
-С T-035 шаблоны и миграции лежат внутри пакета — `patches_please/templates/`
+С T-035 шаблоны и миграции лежат внутри пакета: `patches_please/templates/`
 и `patches_please/migrations/`. В списках файлов выполненных задач ниже пути
 указаны на момент их постановки.
 
@@ -26,7 +27,7 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-001 | CON-002, CON-005 | `docker-compose.yml`, `Dockerfile`, `patches_please/main.py`, `patches_please/worker/main.py`, `Makefile`, `.env.example`, `pyproject.toml`, `contracts/openapi.yaml` | Compose с postgres, redis, api, worker; healthcheck; каркас `pyproject.toml` с pytest, ruff, mypy; `.env.example` без секретов | `docker compose up -d`, `curl /health` | стек поднимается, `/health` отдаёт 200, worker виден в `docker compose ps` |
 | T-002 | NFR-005 | `patches_please/db.py`, `alembic.ini`, `migrations/`, `README.md` | Подключение к PostgreSQL, Alembic, первая миграция `users` и `sessions` | `uv run alembic upgrade head`, перезапуск стека | миграция применяется, после рестарта данные на месте |
 | T-003 | NFR-001 | `tests/conftest.py`, `.github/workflows/ci.yml` | Общие фикстуры pytest, CI на push и PR | `uv run pytest`, `uv run ruff check .` | CI зелёный на каркасе T-001 |
-| T-004 | FR-022, FR-023 | `patches_please/auth/router.py`, `patches_please/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль — 401 |
+| T-004 | FR-022, FR-023 | `patches_please/auth/router.py`, `patches_please/auth/service.py`, `templates/login.html`, `tests/test_auth.py` | Вход и выход, cookie-сессия, хеш пароля | `uv run pytest tests/test_auth.py` | вход даёт сессию, неверный пароль даёт 401 |
 | T-005 | FR-017 | `patches_please/projects/router.py`, `patches_please/projects/models.py`, `templates/projects.html`, `tests/test_projects.py` | Модель проекта, список и создание, изоляция по членству | `uv run pytest tests/test_projects.py` | пользователь проекта А не видит проект Б |
 | T-006 | FR-024, FR-025 | `patches_please/tokens/router.py`, `patches_please/tokens/service.py`, `tests/test_tokens.py` | Токен проекта: создание, показ один раз, хеш в БД, отзыв | `uv run pytest tests/test_tokens.py` | повторно токен не отдаётся, отозванный не проходит |
 | T-007 | FR-009 | `contracts/openapi.yaml`, `patches_please/api.py`, `scripts/export_openapi.py`, `tests/test_contract.py` | Экспорт OpenAPI, схемы запросов и ответов, коды ошибок, схемы безопасности | `uv run pytest tests/test_contract.py` | контракт совпадает с реализацией |
@@ -56,8 +57,8 @@ Delta-спеки: [delta-001-auth.md](delta-001-auth.md) — FR-022, FR-023 (T-0
 | T-031 | CON-001 | `docs/licenses.md`, `README.md` | Список лицензий сканеров и зависимостей, проверка разрешительности | ревью таблицы лицензий | все лицензии разрешительные, таблица в репозитории |
 | T-032 | CON-003 | `demo/README.md`, `scripts/seed_demo.py`, `docs/demo.md` | Демо-репозиторий с внедрёнными уязвимостями и секретами, без данных работодателя | прогон на демо | находятся все три класса находок, запрещённых данных нет |
 | T-033 | NFR-006, CON-004 | `docs/runbook.md`, `README.md` | Инструкция развёртывания с нуля на русском, хронометраж; предусловия: установка `uv` и запуск Docker Desktop | чистая машина, замер по инструкции | развёртывание ≤ 30 минут |
-| T-034 | — | `pyproject.toml`, `uv.lock`, `docker-compose.yml`, `.env.example`, `app/` → `patches_please/`, `contracts/openapi.yaml`, `scripts/export_openapi.py`, `templates/`, `tests/`, `README.md`, `AGENTS.md`, `docs/`, `specs/` | Переименование продукта в «Patches, Please»: бренд в текстах, `app/` → `patches_please/`, cookie `pp_session`, префикс токена `pp_`, БД `patches_please*`, очередь и образы `patches-please` | `uv run pytest`, `uv run mypy patches_please`, `uv run ruff check .`, `uv run python -m scripts.export_openapi`, `docker compose up -d` с пустого volume | старого имени продукта нет в коде и документации, кроме цитаты названия запроса в `docs/source-request.md` и истории git; стек поднимается с нуля |
-| T-035 | — | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
+| T-034 | нет | `pyproject.toml`, `uv.lock`, `docker-compose.yml`, `.env.example`, `app/` → `patches_please/`, `contracts/openapi.yaml`, `scripts/export_openapi.py`, `templates/`, `tests/`, `README.md`, `AGENTS.md`, `docs/`, `specs/` | Переименование продукта в «Patches, Please»: бренд в текстах, `app/` → `patches_please/`, cookie `pp_session`, префикс токена `pp_`, БД `patches_please*`, очередь и образы `patches-please` | `uv run pytest`, `uv run mypy patches_please`, `uv run ruff check .`, `uv run python -m scripts.export_openapi`, `docker compose up -d` с пустого volume | старого имени продукта нет в коде и документации, кроме цитаты названия запроса в `docs/source-request.md` и истории git; стек поднимается с нуля |
+| T-035 | нет | `pyproject.toml`, `scripts/check_wheel.py` | `[build-system]` на hatchling, `packages = ["patches_please"]`, шаблоны и миграции внутри wheel, `uv build` | `uv build`, установка wheel в чистый venv, `python -c "import patches_please"` | wheel собирается и ставится без исходников, модуль импортируется из установленного пакета; точка входа появляется в T-036 |
 | T-036 | FR-031…FR-037, NFR-007 | `patches_please/cli.py`, `pyproject.toml` (`[project.scripts]`, `httpx` в зависимостях), `tests/test_cli.py`, `docs/ci-github.md` | Клиент: аргументы, старт прогона, ожидание с таймаутом, таблица кодов выхода, `--json`, повторы на `5xx`, маскирование токена | `uv run pytest tests/test_cli.py` | код 0 при `pass`, 1 при `fail`, коды 2–6 различимы, токен не попадает ни в stdout, ни в stderr |
 | T-037 | CON-004 | `docs/brand.md`, `patches_please/templates/static/brand.css`, `patches_please/templates/*.html`, `tests/test_web_scan.py` | Применить паспорт стиля: словарь «досмотр/пропущен/задержан», штамп вердикта, палитра, два шрифта с кириллицей | просмотр страниц, `uv run pytest tests/test_web_*.py` | на странице прогона и в отчёте штамп, подписи по словарю, пиксельный шрифт не попадает в тело текста |
 | T-038 | FR-002, FR-005, FR-019 | `patches_please/scans/pipeline.py`, `patches_please/scans/queue.py`, `tests/test_scan_pipeline.py` | Оркестрация прогона в воркере: клон репозитория, запуск трёх сканеров, нормализация, классификация по baseline, исключения, метрики и вердикт за один проход после `queued → running` | `uv run pytest tests/test_scan_pipeline.py`, прогон на демо | прогон из очереди доходит до `done` с находками, метриками и вердиктом; новая `critical` при политике `critical` даёт `fail` |
@@ -141,11 +142,11 @@ T-038 добавлена после T-018: расчёт вердикта и сп
 | 10. Замеры и документация | T-029…T-033 | 4 дня |
 
 Итого около 8,5 недель работы плюс две недели буфера на текст ВКР и правки.
-Защита в феврале — запас есть.
+Защита в феврале, запас по времени есть.
 
 T-038 идёт между этапами 6 и 7: без неё отчётам T-020 нечего показывать,
 а T-026/T-027 не получат код 1 на реальном прогоне. В оценки выше она не
-включена — задача добавлена после планирования.
+включена: задача добавлена после планирования.
 
 T-034 идёт после T-013: переименование каталога `app/` задевает файлы, которые
 создаёт задача по сканерам. Пока они не закоммичены, переименование делается
