@@ -101,6 +101,12 @@ uv run alembic upgrade head    # схема БД: без миграций стр
 `scripts/seed_demo.py` (см. [`docs/demo.md`](docs/demo.md)). Остановка стека —
 `docker compose down`.
 
+Объект проверки для демонстрации — публичный репозиторий
+[`arslan-ahmetjanov/patches-please-demo`](https://github.com/arslan-ahmetjanov/patches-please-demo):
+учебный сервис с внедрёнными уязвимостями и фиктивным секретом. Источник правды
+для него — каталог `demo/` этого репозитория; порядок публикации и сценарий
+`fail` → baseline → `pass` описаны в [`docs/demo.md`](docs/demo.md).
+
 Развёртывание с нуля на чистой машине — предусловия, переменные `.env`, порядок
 шагов, ожидаемые выводы, хронометраж и устранение неполадок — в
 [`docs/runbook.md`](docs/runbook.md).
