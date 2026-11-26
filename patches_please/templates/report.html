@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Отчёт по досмотру {{ report.scan.commit_sha[:12] }} — Patches, Please</title>
+  <title>Отчёт по досмотру {{ report.scan.commit_sha[:12] }} · Patches, Please</title>
   <style>{% include "static/brand.css" %}</style>
 </head>
 <body>
@@ -95,8 +95,8 @@
             <td>{{ check.scanner }}</td>
             <td>{% if check.degraded %}<span class="status-degraded">неполная ({{ check.status }})</span>{% else %}<span class="status-ok">{{ check.status }}</span>{% endif %}</td>
             <td class="num">{{ check.duration_ms }} мс</td>
-            <td>{{ check.tool_version or "—" }}</td>
-            <td>{{ check.error or "—" }}</td>
+            <td>{{ check.tool_version or "нет данных" }}</td>
+            <td>{{ check.error or "нет данных" }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -107,7 +107,7 @@
     </section>
 
     <section>
-      <h2>Находки — {{ report.totals.findings }}</h2>
+      <h2>Находки: {{ report.totals.findings }}</h2>
       <p class="muted">
         Новых: {{ report.totals.new }}, существующих: {{ report.totals.existing }},
         исключённых: {{ report.totals.excluded }}, блокирующих: {{ report.totals.blocking }}.
@@ -140,7 +140,7 @@
             <td>{{ finding.finding_type }}</td>
             <td>{{ finding.scanner }}</td>
             <td>{{ state_labels.get(finding.state, finding.state) }}</td>
-            <td>{% if finding.excluded %}да{% else %}—{% endif %}</td>
+            <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
             <td>{{ finding.message }}</td>
           </tr>
           {% endfor %}

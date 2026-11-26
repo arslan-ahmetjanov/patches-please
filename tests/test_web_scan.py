@@ -241,7 +241,7 @@ def test_fr_003_scan_page_shows_all_finding_fields(
     assert "существовала" in rows
     assert "SQL-инъекция в запросе" in rows
     assert "Секрет в коде" in rows
-    assert "—" in _row(rows, "rule-sql-injection")
+    assert "<td>нет</td>" in _row(rows, "rule-sql-injection")
     assert "да" in _row(rows, "rule-hardcoded-secret")
     # Тяжёлая находка идёт первой.
     assert rows.index("rule-sql-injection") < rows.index("rule-hardcoded-secret")

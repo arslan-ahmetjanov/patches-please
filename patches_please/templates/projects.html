@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Мои проекты — Patches, Please</title>
+  <title>Мои проекты · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body class="page-projects">
@@ -40,7 +40,7 @@
         <tr>
           <td><a href="/projects/{{ project.slug }}">{{ project.name }}</a></td>
           <td><code>{{ project.slug }}</code></td>
-          <td>{% if project.repo_url %}{{ project.repo_url }}{% else %}—{% endif %}</td>
+          <td>{% if project.repo_url %}{{ project.repo_url }}{% else %}нет данных{% endif %}</td>
           <td>{{ project.default_branch }}</td>
           <td>{{ project.created_at.strftime("%d.%m.%Y %H:%M") }}</td>
         </tr>
@@ -48,7 +48,7 @@
       </tbody>
     </table>
     {% else %}
-    <p class="empty">Пока нет проектов. Создайте первый — форма ниже.</p>
+    <p class="empty">Пока нет проектов. Создайте первый в форме ниже.</p>
     {% endif %}
 
     <section>

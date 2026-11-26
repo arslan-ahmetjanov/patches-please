@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Настройки {{ project.name }} — Patches, Please</title>
+  <title>Настройки {{ project.name }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
@@ -21,7 +21,7 @@
     <section>
       <p class="muted"><a href="/projects/{{ project.slug }}">{{ project.name }}</a> · настройки</p>
       <h1>Настройки</h1>
-      <p class="muted">Проект <code>{{ project.slug }}</code>. Настройки меняет владелец проекта.</p>
+      <p class="muted">Проект <code>{{ project.slug }}</code>. Менять настройки может только владелец.</p>
     </section>
 
     {% include "policy_form.html" %}
@@ -29,8 +29,8 @@
     <section id="exceptions">
       <h2>Исключения находок</h2>
       <p class="muted">
-        Исключение снимает находку своего правила и подходящего пути с вердикта
-        до указанного срока. Действие попадает в журнал аудита.
+        Исключение снимает с вердикта находки этого правила по подходящему пути,
+        пока не наступит срок. Каждое действие попадает в журнал аудита.
       </p>
 
       {% if exception_error %}
@@ -88,7 +88,7 @@
                 <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
                 <button type="submit" class="link">Отозвать</button>
               </form>
-              {% else %}—{% endif %}
+              {% endif %}
             </td>
           </tr>
           {% endfor %}

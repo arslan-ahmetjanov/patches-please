@@ -198,7 +198,7 @@ def test_fr_008_html_contains_every_finding() -> None:
         assert record.rule_id in html
         assert f"<code>{record.path}</code>" in html
         assert f">{record.line}</td>" in html
-    assert "Находки — 3" in html
+    assert "Находки: 3" in html
     assert "Новых: 2, существующих: 1" in html
 
 

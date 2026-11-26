@@ -316,7 +316,7 @@ def test_fr_010_unfinished_runs_do_not_break_trend(
     for label in ("в очереди", "выполняется", "ошибка"):
         assert label in recent
     # У незавершённых прогонов числа не показываются.
-    assert "—" in recent
+    assert "нет данных" in recent
     assert "Завершённых досмотров пока нет" in page.text
     assert TREND_HEADING not in page.text
     assert TOP_HEADING not in page.text

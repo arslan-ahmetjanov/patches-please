@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Досмотр {{ scan.commit_sha[:12] }} — Patches, Please</title>
+  <title>Досмотр {{ scan.commit_sha[:12] }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
@@ -52,9 +52,9 @@
           {% endif %}
         </dd>
         <dt>Начало</dt>
-        <dd>{% if scan.started_at %}{{ scan.started_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}—{% endif %}</dd>
+        <dd>{% if scan.started_at %}{{ scan.started_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}нет данных{% endif %}</dd>
         <dt>Завершение</dt>
-        <dd>{% if scan.finished_at %}{{ scan.finished_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}—{% endif %}</dd>
+        <dd>{% if scan.finished_at %}{{ scan.finished_at.strftime("%d.%m.%Y %H:%M:%S") }}{% else %}нет данных{% endif %}</dd>
       </dl>
       {% if view.metrics %}
       <p class="muted">
@@ -129,7 +129,7 @@
             <td>{{ finding.finding_type }}</td>
             <td>{{ finding.scanner }}</td>
             <td>{{ state_labels.get(finding.state, finding.state) }}</td>
-            <td>{% if finding.excluded %}да{% else %}—{% endif %}</td>
+            <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
             <td>{{ finding.message }}</td>
           </tr>
           {% endfor %}

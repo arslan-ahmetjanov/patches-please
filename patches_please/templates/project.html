@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ project.name }} — Patches, Please</title>
+  <title>{{ project.name }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
 </head>
 <body>
@@ -28,7 +28,7 @@
     </section>
 
     {% if not dashboard.recent_runs %}
-    <p class="empty">По проекту ещё нет досмотров. Запустите проверку из CI — история появится здесь.</p>
+    <p class="empty">По проекту ещё нет досмотров. Запустите проверку из CI, и история появится здесь.</p>
     {% else %}
     <section>
       <h2>Последние досмотры</h2>
@@ -53,15 +53,15 @@
             <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
             <td>
               {% if run.status == "done" %}
-              <span class="verdict {% if run.verdict == 'fail' %}fail{% elif run.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "—") }}</span>
+              <span class="verdict {% if run.verdict == 'fail' %}fail{% elif run.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "нет данных") }}</span>
               {% else %}
               {{ status_labels.get(run.status, run.status) }}
               {% endif %}
             </td>
             {% for severity in severity_keys %}
-            <td class="num">{% if run.counts %}{{ run.counts[severity] }}{% else %}—{% endif %}</td>
+            <td class="num">{% if run.counts %}{{ run.counts[severity] }}{% else %}нет данных{% endif %}</td>
             {% endfor %}
-            <td class="num">{% if run.total is not none %}{{ run.total }}{% else %}—{% endif %}</td>
+            <td class="num">{% if run.total is not none %}{{ run.total }}{% else %}нет данных{% endif %}</td>
           </tr>
           {% endfor %}
         </tbody>
