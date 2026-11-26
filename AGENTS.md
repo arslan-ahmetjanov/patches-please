@@ -39,7 +39,7 @@ demo/                     # исходник отдельного публичн
 
 ## Стек
 
-Python 3.12, FastAPI, SQLAlchemy 2.0 + Alembic, PostgreSQL 16, Redis 7.2 + RQ, Jinja2 + HTMX, pytest, ruff, mypy strict. Всё — через Docker Compose.
+Python 3.12, FastAPI, SQLAlchemy 2.0 + Alembic, PostgreSQL 16, Redis 7.2 + RQ, Jinja2, pytest, ruff, mypy strict. Всё — через Docker Compose.
 
 ## Команды
 
