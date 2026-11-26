@@ -24,8 +24,11 @@
 | ОЗУ хоста | 16 111 МБ (16 ГБ) |
 | Docker | Docker Desktop 29.0.1, ядро WSL2 6.6.87.2 |
 | Ресурсы Docker VM | 16 CPU, 9.711 GiB ОЗУ |
-| Стенд | `docker compose`: `postgres:16-alpine`, `redis:7-alpine`, образы `patches-please-api:local` и `patches-please-worker:local` |
+| Стенд | `docker compose`: `postgres:16-alpine`, `redis:7.2-alpine`, образы `patches-please-api:local` и `patches-please-worker:local` |
 | Нагрузочный инструмент | k6 v2.4.0 (windows/amd64) |
+
+Тег Redis в таблице — текущий, из `docker-compose.yml`. Замер выполнялся до T-031,
+когда там стоял `redis:7-alpine`: цифры получены на нём и не пересчитывались.
 
 Замер шёл с хоста в опубликованный порт API. Порт 8000 на этой машине попадает
 в зарезервированный Windows диапазон 7979–8078 (`netsh int ipv4 show
@@ -165,8 +168,11 @@ NFR-001 выполнен с запасом: p95 24.93 мс против поро
 | Docker | Docker Desktop 29.0.1, ядро WSL2 6.6.87.2 |
 | Ресурсы Docker VM | 16 CPU, 9.711 GiB ОЗУ |
 | Ограничение worker | `cpus: 4.0` (`NanoCpus=4000000000`), остальные сервисы без лимита |
-| Стенд | `docker compose`: `postgres:16-alpine`, `redis:7-alpine`, образы `patches-please-api:local` и `patches-please-worker:local` |
+| Стенд | `docker compose`: `postgres:16-alpine`, `redis:7.2-alpine`, образы `patches-please-api:local` и `patches-please-worker:local` |
 | Сканеры в образе worker | Semgrep 1.186.0, Gitleaks 8.30.1, Trivy 0.76.2 (база от 2026-11-23) |
+
+Тег Redis в таблице — текущий, из `docker-compose.yml`. Замер выполнялся до T-031,
+когда там стоял `redis:7-alpine`: цифры получены на нём и не пересчитывались.
 
 NFR-002 говорит о 4 vCPU. Чтобы приблизить стенд к требованию, worker ограничен
 четырьмя CPU временным override-файлом Compose (`cpus: 4.0`); API, PostgreSQL и
