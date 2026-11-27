@@ -1,0 +1,48 @@
+# Публикация сайта документации на GitHub Pages.
+#
+# Сайт лежит в каталоге `site/` и не собирается: это готовый HTML и CSS, поэтому
+# шага сборки нет, а артефактом уходит сам каталог. Запуск при правках `site/`
+# и вручную. Права: чтение репозитория, запись в Pages и id-token для деплоя,
+# других секретов не нужно.
+name: docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Один деплой за раз: второй не отменяет первый, иначе Pages может остаться
+# с недописанным артефактом.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Получить репозиторий
+        uses: actions/checkout@v7
+
+      - name: Подготовить Pages
+        uses: actions/configure-pages@v6
+
+      - name: Упаковать каталог site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+      - name: Опубликовать
+        id: deployment
+        uses: actions/deploy-pages@v5

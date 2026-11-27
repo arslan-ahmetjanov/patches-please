@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CI: Patches, Please</title>
+<meta name="description" content="Подключение Patches, Please к GitHub Actions и GitLab CI: секреты и переменные, пример workflow, входы действия, коды выхода и поведение описи.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html" aria-current="page">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>CI</h1>
+
+  <p class="lead">
+    Проверка встраивается в пайплайн двумя способами: готовое композитное
+    действие для GitHub Actions и шаблон job для GitLab CI. Оба ставят один CLI
+    <code>patches-please</code>, ждут вердикт и возвращают его кодом выхода.
+  </p>
+
+  <h2>GitHub Actions</h2>
+
+  <p>Настройка репозитория состоит из трёх шагов.</p>
+
+  <ol class="steps">
+    <li>
+      <p>
+        Создайте токен проекта. Он выдаётся один раз в ответе
+        <code>POST /api/v1/projects/{project_id}/tokens</code>, создавать может
+        владелец проекта. Значение имеет вид <code>pp_...</code> и больше не
+        показывается.
+      </p>
+    </li>
+    <li>
+      <p>
+        Положите токен в секрет репозитория <code>PATCHES_PLEASE_TOKEN</code>:
+        Settings, Secrets and variables, Actions, Secrets.
+      </p>
+    </li>
+    <li>
+      <p>
+        Положите адрес сервиса в переменную репозитория
+        <code>PATCHES_PLEASE_URL</code>, там же в разделе Variables. Укажите
+        полный <code>http(s)</code>-адрес без <code>/api/v1</code>, например
+        <code>https://patches.example.ru</code>.
+      </p>
+    </li>
+  </ol>
+
+  <p>Workflow целиком:</p>
+
+<pre><code>name: Проверка безопасности
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/patches-please
+        with:
+          server: ${{ vars.PATCHES_PLEASE_URL }}
+          token: ${{ secrets.PATCHES_PLEASE_TOKEN }}</code></pre>
+
+  <p>
+    На <code>pull_request</code> значение <code>github.sha</code> по умолчанию
+    указывает на коммит слияния, а не на коммит ветки. Если проверять нужно сам
+    коммит из PR, передайте его явно:
+  </p>
+
+<pre><code>      - uses: ./.github/actions/patches-please
+        with:
+          server: ${{ vars.PATCHES_PLEASE_URL }}
+          token: ${{ secrets.PATCHES_PLEASE_TOKEN }}
+          commit: ${{ github.event.pull_request.head.sha }}</code></pre>
+
+  <p>
+    Из другого репозитория действие вызывается по пути внутри репозитория.
+    Для воспроизводимости закрепите ссылку коммитом или тегом вместо
+    <code>main</code>.
+  </p>
+
+<pre><code>      - uses: arslan-ahmetjanov/patches-please/.github/actions/patches-please@main
+        with:
+          server: ${{ vars.PATCHES_PLEASE_URL }}
+          token: ${{ secrets.PATCHES_PLEASE_TOKEN }}</code></pre>
+
+  <h2>Входы действия</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Входы композитного действия <code>patches-please</code></caption>
+      <thead>
+        <tr>
+          <th scope="col">Вход</th>
+          <th scope="col">Обязателен</th>
+          <th scope="col">По умолчанию</th>
+          <th scope="col">Назначение</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>server</code></td>
+          <td>да</td>
+          <td>нет</td>
+          <td>Адрес API сервиса, <code>http(s)://host[:port]</code></td>
+        </tr>
+        <tr>
+          <td><code>token</code></td>
+          <td>да</td>
+          <td>нет</td>
+          <td>Токен проекта <code>pp_...</code>; передавайте из <code>secrets</code></td>
+        </tr>
+        <tr>
+          <td><code>provider</code></td>
+          <td>нет</td>
+          <td><code>github</code></td>
+          <td>Провайдер: <code>github</code> или <code>gitlab</code></td>
+        </tr>
+        <tr>
+          <td><code>commit</code></td>
+          <td>нет</td>
+          <td><code>github.sha</code></td>
+          <td>Полный SHA проверяемого коммита</td>
+        </tr>
+        <tr>
+          <td><code>ref</code></td>
+          <td>нет</td>
+          <td><code>github.ref</code></td>
+          <td>git ref: <code>main</code>, <code>refs/heads/main</code></td>
+        </tr>
+        <tr>
+          <td><code>timeout</code></td>
+          <td>нет</td>
+          <td><code>900</code></td>
+          <td>Общий дедлайн команды в секундах</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Выходов у действия нет: результат читается по коду выхода шага и по логу
+    клиента. Токен маскируется до того, как попадёт в окружение клиента, поэтому
+    в логах его нет при любом коде выхода.
+  </p>
+
+  <h2>GitLab CI</h2>
+
+  <p>
+    Шаблон лежит в <code>ci/gitlab/patches-please.yml</code> и подключается через
+    <code>include</code> и <code>extends</code>. Адрес сервиса и токен берутся из
+    CI/CD-переменных, в файле их значений нет.
+  </p>
+
+<pre><code>include:
+  - local: ci/gitlab/patches-please.yml
+
+stages:
+  - test
+
+patches-please:
+  extends: .patches-please
+  stage: test
+  when: manual
+  allow_failure: true</code></pre>
+
+  <p>
+    Переменные задаются в Settings, CI/CD, Variables:
+  </p>
+
+  <ul>
+    <li>
+      <code>PATCHES_PLEASE_URL</code>: адрес сервиса, например
+      <code>https://patches.example.ru</code>;
+    </li>
+    <li>
+      <code>PATCHES_PLEASE_TOKEN</code>: токен проекта вида
+      <code>pp_...</code>, пометьте masked и protected;
+    </li>
+    <li>
+      <code>PATCHES_PLEASE_CLI_TOKEN</code>: токен на чтение, нужен только если
+      репозиторий клиента приватный, пометьте masked и protected.
+    </li>
+  </ul>
+
+  <p>
+    <code>when: manual</code> оставляет запуск ручным: пока сервис не развёрнут,
+    прогон не пройдёт, а пайплайн на каждый push падать не должен.
+    <code>allow_failure: true</code> держит пайплайн зелёным: job получает код
+    клиента и краснеет при <code>fail</code>, но пайплайн остаётся успешным.
+    Уберите обе настройки, когда проверка должна блокировать слияние.
+  </p>
+
+  <h2>Коды выхода</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Коды возврата клиента в CI</caption>
+      <thead>
+        <tr>
+          <th scope="col">Код</th>
+          <th scope="col">Значение</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>0</code></td>
+          <td>Вердикт <code>pass</code> (или прогон только запущен без <code>--wait</code>)</td>
+        </tr>
+        <tr>
+          <td><code>1</code></td>
+          <td>Вердикт <code>fail</code></td>
+        </tr>
+        <tr>
+          <td><code>2</code></td>
+          <td>Ошибка аргументов или адреса: нет провайдера, коммита, ref или токена; неверные <code>--server</code>, <code>--timeout</code>, <code>--interval</code>; <code>3xx</code>; <code>404</code> на старте; <code>4xx</code> от API</td>
+        </tr>
+        <tr>
+          <td><code>3</code></td>
+          <td><code>401</code>, <code>403</code> или <code>404</code> при опросе: нет доступа к прогону</td>
+        </tr>
+        <tr>
+          <td><code>4</code></td>
+          <td><code>status=error</code>, завершение без вердикта или неполный ответ сервиса</td>
+        </tr>
+        <tr>
+          <td><code>5</code></td>
+          <td>Истёк <code>--timeout</code> в ожидании</td>
+        </tr>
+        <tr>
+          <td><code>6</code></td>
+          <td>Сеть, <code>5xx</code> после повторов или непредвиденная ошибка клиента</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Что важно помнить</h2>
+
+  <ul>
+    <li>
+      <strong>Job падает при любом ненулевом коде.</strong> <code>1</code>
+      (находки блокирующего уровня) и <code>2…6</code> (сбой проверки) в
+      интерфейсе выглядят одинаково; различить их можно по коду в логе шага и по
+      сообщению клиента в stderr.
+    </li>
+    <li>
+      <strong>Раннер не видит <code>localhost</code>.</strong> Сервису нужен
+      публичный адрес: развёрнутый стенд или временный туннель к локальному.
+      Порядок развёртывания описан на странице <a href="server.html">«Сервер»</a>.
+    </li>
+    <li>
+      <strong>Опись меняет картину.</strong> Исторические находки из описи
+      получают состояние <code>existing</code> и не блокируют прогон, новые
+      находки блокируют. Порядок установки описи: <a href="first-scan.html">«Первый
+      прогон»</a>.
+    </li>
+    <li>
+      <strong>Повторный запуск.</strong> Повторный <code>POST</code> того же
+      коммита возвращает существующий прогон при любом статусе, включая
+      <code>error</code>: перезапуск job не создаст новый прогон.
+    </li>
+    <li>
+      <strong>Без <code>--wait</code> гейта нет.</strong> Клиент только создаёт
+      прогон и выходит с кодом <code>0</code>. Если повторный <code>POST</code>
+      вернул уже завершённый прогон, вердикт применяется и без флага.
+    </li>
+  </ul>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="first-scan.html">← Назад: первый прогон</a>
+    <a href="server.html">Дальше: сервер →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

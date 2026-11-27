@@ -113,6 +113,12 @@ uv run alembic upgrade head    # схема БД: без миграций стр
 [`docs/runbook.md`](docs/runbook.md): предусловия, переменные `.env`, порядок
 шагов, ожидаемые выводы, хронометраж и устранение неполадок.
 
+Документация для новичка лежит на сайте
+[arslan-ahmetjanov.github.io/patches-please](https://arslan-ahmetjanov.github.io/patches-please/):
+установка, настройка, первый прогон, подключение к CI, развёртывание на сервере,
+типовые ошибки и вопросы. Исходники сайта в каталоге [`site/`](site/), публикация
+на GitHub Pages идёт workflow `.github/workflows/pages.yml`.
+
 ## Вход в интерфейс
 
 Вход работает в двух видах на одном сервисе: REST API для программ и HTML-форма

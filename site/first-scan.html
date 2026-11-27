@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Первый прогон: Patches, Please</title>
+<meta name="description" content="Первый прогон Patches, Please: демо-пользователь, проект и токен, вход в интерфейс, CLI с ожиданием вердикта, коды выхода, опись и разрешения.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html" aria-current="page">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Первый прогон</h1>
+
+  <p class="lead">
+    Прогон запускает проверку коммита: worker клонирует репозиторий, гоняет три
+    сканера и возвращает вердикт. Чтобы дойти до него, нужны учётная запись,
+    проект и токен проекта, а затем вызов клиента с ожиданием результата.
+  </p>
+
+  <h2>Пользователь, проект и токен</h2>
+
+  <p>
+    Регистрации нет. Учётную запись, проект и токен создаёт
+    <code>scripts/seed_demo.py</code>: он работает с базой напрямую, поэтому
+    запускается с хоста после миграций. Параметры берутся из окружения:
+    <code>DEMO_PASSWORD</code> (обязателен, не короче 8 символов) и
+    <code>DEMO_REPO_URL</code> (обязателен).
+  </p>
+
+<pre><code>export DEMO_PASSWORD='&lt;пароль не короче 8 символов&gt;'
+export DEMO_REPO_URL='https://github.com/arslan-ahmetjanov/patches-please-demo.git'
+uv run python scripts/seed_demo.py</code></pre>
+
+  <p>PowerShell:</p>
+
+<pre><code>$env:DEMO_PASSWORD = "&lt;пароль не короче 8 символов&gt;"
+$env:DEMO_REPO_URL = "https://github.com/arslan-ahmetjanov/patches-please-demo.git"
+uv run python scripts/seed_demo.py</code></pre>
+
+  <p>Ожидаемо: код возврата <code>0</code> и вывод вида</p>
+
+<pre><code>пользователь создан: demo@example.com
+проект создан: patches-please-demo (&lt;uuid&gt;)
+токен создан: ci (&lt;uuid&gt;)
+
+демо-стенд готов: пользователь demo@example.com, проект patches-please-demo (&lt;uuid&gt;)
+токен проекта (показывается один раз): pp_…</code></pre>
+
+  <p>
+    Токен показывается один раз: в базе лежит только SHA-256. Сохраните значение.
+    Скрипт идемпотентен: повторный запуск находит существующие записи и приводит
+    их к значениям из окружения. Если действующий токен с именем <code>ci</code>
+    уже есть, открытое значение не печатается; новый выпускает флаг:
+  </p>
+
+<pre><code>uv run python scripts/seed_demo.py --rotate-token</code></pre>
+
+  <p>
+    Другой способ получить токен: метод <code>POST
+    /api/v1/projects/{project_id}/tokens</code> с cookie-сессией владельца
+    проекта. Страницы управления токенами в интерфейсе нет.
+  </p>
+
+  <h2>Вход в интерфейс</h2>
+
+  <p>
+    Откройте <code>http://localhost:8000/login</code> и войдите с email
+    <code>demo@example.com</code> и паролем из <code>DEMO_PASSWORD</code>.
+    Ожидаемо: редирект на <code>/projects</code>, в списке проект
+    <code>patches-please-demo</code>. Если <code>API_PORT</code> равен
+    <code>8081</code>, адрес начинается с <code>http://localhost:8081</code>.
+  </p>
+
+  <h2>Прогон через CLI</h2>
+
+  <p>
+    Клиент ставится вместе с зависимостями проекта. Передайте токен и запустите
+    прогон по коммиту демо-репозитория:
+  </p>
+
+<pre><code>export PATCHES_PLEASE_TOKEN='pp_…'
+uv run patches-please scan \
+  --provider github \
+  --commit &lt;полный SHA коммита демо-репозитория&gt; \
+  --ref main \
+  --wait</code></pre>
+
+  <p>Если порт API отличается от <code>8000</code>, укажите адрес явно:</p>
+
+<pre><code>export PATCHES_PLEASE_URL='http://localhost:8081'</code></pre>
+
+  <p>
+    <code>--provider</code> обязателен: клиент не угадывает провайдера по
+    переменным. <code>--commit</code> принимает полный SHA, <code>--ref</code>
+    задаётся в виде git ref (<code>main</code>, <code>refs/heads/main</code>).
+    Без <code>--wait</code> клиент только создаёт прогон и выходит с кодом
+    <code>0</code>; для гейта в пайплайне нужен <code>--wait</code>.
+  </p>
+
+  <p>
+    Первый прогон на демо-репозитории ожидаемо завершается кодом <code>1</code>:
+    политика по умолчанию блокирует <code>critical</code> и <code>high</code>, а
+    высокие находки Trivy новые. Это не ошибка настройки.
+  </p>
+
+  <h2>Коды выхода</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Коды возврата клиента <code>patches-please</code></caption>
+      <thead>
+        <tr>
+          <th scope="col">Код</th>
+          <th scope="col">Значение</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>0</code></td>
+          <td>Вердикт <code>pass</code> (или прогон только запущен без <code>--wait</code>)</td>
+        </tr>
+        <tr>
+          <td><code>1</code></td>
+          <td>Вердикт <code>fail</code></td>
+        </tr>
+        <tr>
+          <td><code>2</code></td>
+          <td>
+            Ошибка аргументов или адреса: нет провайдера, коммита, ref или токена;
+            неверные <code>--server</code>, <code>--timeout</code>,
+            <code>--interval</code>; <code>3xx</code>; <code>404</code> на старте;
+            <code>4xx</code> от API
+          </td>
+        </tr>
+        <tr>
+          <td><code>3</code></td>
+          <td><code>401</code>, <code>403</code> или <code>404</code> при опросе: нет доступа к прогону</td>
+        </tr>
+        <tr>
+          <td><code>4</code></td>
+          <td><code>status=error</code>, завершение без вердикта или неполный ответ сервиса</td>
+        </tr>
+        <tr>
+          <td><code>5</code></td>
+          <td>Истёк <code>--timeout</code> в ожидании</td>
+        </tr>
+        <tr>
+          <td><code>6</code></td>
+          <td>Сеть, <code>5xx</code> после повторов или непредвиденная ошибка клиента</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Что смотреть на странице прогона</h2>
+
+  <p>
+    Страница прогона открывается из проекта: <code>/projects/&lt;slug&gt;/scans/&lt;id&gt;</code>.
+    На ней штамп вердикта, блок дела и таблица находок.
+  </p>
+
+  <ul>
+    <li>
+      <strong>Штамп.</strong> Вердикт и дата: <span class="stamp stamp--pass">Пропущен</span>
+      или <span class="stamp stamp--fail">Задержан</span>.
+    </li>
+    <li>
+      <strong>Блок дела.</strong> Проект, коммит, ветка, провайдер, идентификатор
+      прогона, статус, время начала и завершения.
+    </li>
+    <li>
+      <strong>Метрики.</strong> Сколько находок в прогоне, сколько новых и
+      исправленных, какая доля исключена разрешениями.
+    </li>
+    <li>
+      <strong>Таблица находок.</strong> Важность, правило, путь, строка,
+      состояние (<code>new</code>, <code>existing</code>, <code>fixed</code>) и
+      сканер. Фильтр по важности, сниппет раскрывается в терминальном блоке.
+    </li>
+  </ul>
+
+  <figure>
+    <img src="assets/scan.webp" alt="Страница прогона: штамп вердикта, метрики и таблица находок" width="1200" height="2594" loading="lazy">
+    <figcaption>
+      Прогон демо-проекта: штамп «пропущен», блок дела и 15 находок. Значение
+      секрета заменено заглушкой <code>[секрет скрыт]</code>.
+    </figcaption>
+  </figure>
+
+  <p>
+    Прогон на демо-репозитории даёт 15 находок: 3 SAST, 1 секрет и 11 уязвимых
+    зависимостей. Уровни Semgrep и Gitleaks в отчёте равны <code>medium</code>;
+    Trivy пишет <code>error</code> для своих <code>critical</code> и
+    <code>high</code>, нормализатор переводит его в <code>high</code>.
+  </p>
+
+  <h2>Опись</h2>
+
+  <p>
+    Опись (baseline) фиксирует текущий шум, чтобы исторические находки не
+    блокировали разработку. Ставится она только по завершённому прогону со
+    статусом <code>done</code>. Два флага, взаимоисключающие:
+  </p>
+
+  <ul>
+    <li><code>--baseline-latest</code> берёт последний завершённый прогон проекта;</li>
+    <li><code>--baseline-scan &lt;uuid&gt;</code> берёт указанный прогон.</li>
+  </ul>
+
+<pre><code>export DEMO_PASSWORD='&lt;тот же пароль&gt;'
+export DEMO_REPO_URL='https://github.com/arslan-ahmetjanov/patches-please-demo.git'
+uv run python scripts/seed_demo.py --baseline-latest</code></pre>
+
+  <p>
+    Опись у проекта одна: повторная установка заменяет набор отпечатков, а не
+    создаёт вторую запись. Находки получают метки:
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Состояния находки относительно описи</caption>
+      <thead>
+        <tr>
+          <th scope="col">Метка</th>
+          <th scope="col">Что значит</th>
+          <th scope="col">Влияет на вердикт</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>new</code></td>
+          <td>Находки не было в описи</td>
+          <td>Да, если её уровень блокирующий</td>
+        </tr>
+        <tr>
+          <td><code>existing</code></td>
+          <td>Находка уже была в описи</td>
+          <td>Нет</td>
+        </tr>
+        <tr>
+          <td><code>fixed</code></td>
+          <td>Находка из описи больше не встречается</td>
+          <td>Нет</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Дальше внесите в демо-репозиторий безопасное изменение, например поправьте
+    пунктуацию в его <code>README.md</code>, и запустите прогон на новом SHA:
+  </p>
+
+<pre><code>uv run patches-please scan \
+  --provider github \
+  --commit &lt;новый SHA&gt; \
+  --ref main \
+  --wait</code></pre>
+
+  <p>
+    Ожидаемо: код <code>0</code> и вердикт <code>pass</code>. Все находки совпали
+    с описью и получили состояние <code>existing</code>. Если править сам
+    <code>app.py</code>, отпечаток может измениться: в него входит фрагмент кода,
+    но не номер строки.
+  </p>
+
+  <h2>Отчёт по прогону</h2>
+
+  <p>
+    Кроме страницы, <code>worker</code> пишет два файла в том
+    <code>reportsdata</code>: <code>&lt;scan_id&gt;.json</code> и
+    <code>&lt;scan_id&gt;.html</code>. HTML открывается в браузере без сервера.
+  </p>
+
+  <figure class="figure-tall">
+    <img src="assets/report.webp" alt="HTML-отчёт по прогону с шапкой дела и описью нарушений" width="1200" height="3109" loading="lazy">
+    <figcaption>
+      HTML-отчёт: штамп, метрики, проверки сканеров и опись нарушений.
+      <a href="assets/report.webp">Открыть снимок целиком</a>.
+    </figcaption>
+  </figure>
+
+  <h2>Разрешения со сроком</h2>
+
+  <p>
+    Если находка ложная, на странице настроек проекта создаётся разрешение:
+    правило, путь, причина и срок действия в UTC. Пока срок не наступил, находки
+    этого правила по подходящему пути не влияют на вердикт. После срока находка
+    снова считается новой, а действие с разрешением попадает в журнал аудита.
+  </p>
+
+  <p>
+    Правило указывается точно как в находке, путь задаётся шаблоном: <code>*</code>
+    совпадает и с вложенными каталогами. Формы защищены CSRF-токеном, менять
+    настройки может только владелец проекта.
+  </p>
+
+  <h2>Итог</h2>
+
+  <div class="note note--ok">
+    <span class="note__title">Два вердикта</span>
+    <p>
+      На демо-репозитории первый прогон даёт
+      <span class="stamp stamp--fail">Задержан</span> и код <code>1</code>: высокие
+      находки Trivy новые. После установки описи прогон на новом коммите даёт
+      <span class="stamp stamp--pass">Пропущен</span> и код <code>0</code>.
+    </p>
+  </div>
+
+  <div class="note note--warn">
+    <span class="note__title">Границы первого прогона</span>
+    <ul>
+      <li>Страницы управления токенами в интерфейсе нет: токен выдаёт REST API или сев.</li>
+      <li>Отчёты лежат файлами в томе <code>reportsdata</code>, метода скачивания нет.</li>
+      <li>Опись ставится скриптом напрямую в базу: отдельного метода REST API нет.</li>
+      <li>
+        Повторный запрос с тем же проектом и коммитом возвращает существующий
+        прогон, включая <code>error</code>: перезапуск не создаёт новый прогон,
+        нужен новый коммит.
+      </li>
+    </ul>
+  </div>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="configure.html">← Назад: настройка</a>
+    <a href="ci.html">Дальше: CI →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

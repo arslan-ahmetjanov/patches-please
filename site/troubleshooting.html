@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Неполадки: Patches, Please</title>
+<meta name="description" content="Разбор неполадок Patches, Please: порядок проверки, таблица «симптом, причина, что делать», прогон в очереди, ошибка клонирования и вход по HTTP.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html" aria-current="page">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Неполадки</h1>
+
+  <p class="lead">
+    Большая часть сбоев видна по состоянию контейнеров и ответу
+    <code>/health</code>. Начните с короткого порядка разбора, затем найдите
+    свой симптом в таблице.
+  </p>
+
+  <h2>Порядок разбора</h2>
+
+  <ol>
+    <li>
+      Посмотрите состояние сервисов. Четыре строки <code>Up</code> с пометкой
+      <code>(healthy)</code> означают, что стек поднялся.
+<pre><code>docker compose ps</code></pre>
+    </li>
+    <li>
+      Прочитайте логи обоих приложений. У <code>api</code> и <code>worker</code>
+      разные причины отказа.
+<pre><code>docker compose logs -f --tail=100 api worker</code></pre>
+    </li>
+    <li>
+      Проверьте healthcheck API.
+<pre><code>curl http://localhost:8000/health</code></pre>
+      <p>
+        Если <code>/health</code> отвечает, а страницы отдают 500, дело в схеме
+        базы, а не в запуске.
+      </p>
+    </li>
+    <li>
+      Примените миграции и сверьте модели.
+<pre><code>uv run alembic upgrade head
+uv run alembic check</code></pre>
+      <p>
+        Ожидаемо: семь строк <code>Running upgrade …</code> с последней
+        <code>0007</code> и ответ <code>No new upgrade operations detected.</code>
+      </p>
+    </li>
+  </ol>
+
+  <h2>Симптом, причина, что делать</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Типовые сбои установки и работы</caption>
+      <thead>
+        <tr>
+          <th scope="col">Симптом</th>
+          <th scope="col">Причина</th>
+          <th scope="col">Что делать</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>docker version</code>: <code>failed to connect to the docker API … npipe</code> (Windows)</td>
+          <td>Docker Desktop не запущен или служба остановлена</td>
+          <td>Запустить Docker Desktop; при ошибке службы выполнить <code>sc start com.docker.service</code> из терминала от имени администратора</td>
+        </tr>
+        <tr>
+          <td><code>sc start com.docker.service</code>: ошибка <code>5</code></td>
+          <td>нет прав администратора</td>
+          <td>Запустить терминал «От имени администратора»; если политика запрещает, обратиться к администратору машины</td>
+        </tr>
+        <tr>
+          <td>Docker Desktop не стартует, <code>wsl --status</code> с ошибкой</td>
+          <td>не установлен или устарел WSL2</td>
+          <td><code>wsl --install</code>, <code>wsl --update</code>, перезагрузка</td>
+        </tr>
+        <tr>
+          <td><code>bind: address already in use</code> для <code>5432</code></td>
+          <td>локальный PostgreSQL занимает порт</td>
+          <td>Указать <code>POSTGRES_PORT=5433</code> в <code>.env</code>; для миграций задать <code>DATABASE_URL</code> с <code>localhost:5433</code></td>
+        </tr>
+        <tr>
+          <td><code>bind: address already in use</code> для <code>8000</code>, хотя порт свободен</td>
+          <td>порт попал в зарезервированный диапазон Windows</td>
+          <td><code>netsh interface ipv4 show excludedportrange protocol=tcp</code>; задать <code>API_PORT=8081</code></td>
+        </tr>
+        <tr>
+          <td><code>api</code> в состоянии <code>unhealthy</code>, в логах <code>connection refused</code> к <code>postgres</code></td>
+          <td>база ещё не готова или пароль не совпадает с <code>DATABASE_URL</code></td>
+          <td>Подождать <code>start_period</code>; сверить <code>POSTGRES_PASSWORD</code> и пароль в <code>DATABASE_URL</code>; <code>docker compose logs postgres</code></td>
+        </tr>
+        <tr>
+          <td><code>worker</code> в состоянии <code>unhealthy</code></td>
+          <td>воркер не зарегистрировался в очереди</td>
+          <td><code>docker compose logs worker</code>; проверить <code>REDIS_URL</code> и <code>docker compose ps redis</code></td>
+        </tr>
+        <tr>
+          <td><code>alembic upgrade head</code>: <code>password authentication failed</code></td>
+          <td>в оболочке экспортирован <code>DATABASE_URL</code> из <code>.env</code> с хостом <code>postgres</code></td>
+          <td>Убрать переменную из окружения или задать строку с <code>localhost</code></td>
+        </tr>
+        <tr>
+          <td><code>alembic upgrade head</code>: <code>connection refused</code></td>
+          <td>PostgreSQL не запущен или порт другой</td>
+          <td><code>docker compose ps postgres</code>; сверить <code>POSTGRES_PORT</code></td>
+        </tr>
+        <tr>
+          <td><code>docker compose build</code>: <code>curl: (22)</code> или несовпадение SHA256</td>
+          <td>нет доступа к GitHub Releases или прокси подменяет ответ</td>
+          <td>Проверить сеть и прокси Docker; повторить сборку</td>
+        </tr>
+        <tr>
+          <td><code>docker compose build</code>: ошибка установки Semgrep</td>
+          <td>нет доступа к PyPI</td>
+          <td>Проверить прокси и <code>docker info</code>; повторить</td>
+        </tr>
+        <tr>
+          <td><code>no space left on device</code></td>
+          <td>закончилось место под образы и тома</td>
+          <td><code>docker system df</code>, затем <code>docker system prune</code> (удаляет неиспользуемое)</td>
+        </tr>
+        <tr>
+          <td><code>/health</code> отвечает, страницы отдают 500</td>
+          <td>не применены миграции</td>
+          <td>Выполнить шаг 7 установки: <code>uv run alembic upgrade head</code></td>
+        </tr>
+        <tr>
+          <td>Вход: 401 при верном пароле</td>
+          <td>пользователь не создан или пароль другой</td>
+          <td>Повторить шаг 8 с нужным <code>DEMO_PASSWORD</code></td>
+        </tr>
+        <tr>
+          <td>Прогон долго в <code>queued</code></td>
+          <td>worker не запущен или упал</td>
+          <td><code>docker compose ps worker</code>, <code>docker compose logs worker</code></td>
+        </tr>
+        <tr>
+          <td>Прогон <code>error</code>, в причине клонирование</td>
+          <td>репозиторий приватный или адрес неверный</td>
+          <td>Указать публичный HTTPS-адрес в <code>repo_url</code></td>
+        </tr>
+        <tr>
+          <td>Вход не сохраняется, cookie не приходит по HTTP</td>
+          <td><code>APP_ENV</code> не <code>local</code>, поэтому cookie помечена <code>Secure</code></td>
+          <td>Для стенда по HTTP вернуть <code>APP_ENV=local</code>; для HTTPS задать <code>APP_ENV</code> с любым другим значением</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Три частых случая</h2>
+
+  <h3>Прогон долго в queued</h3>
+
+  <p>
+    Прогон создан и лежит в очереди, но задачу никто не взял. Очередь держит
+    Redis, забирает задачи <code>worker</code>. Первым делом проверьте его
+    состояние и логи: если контейнер остановлен или у него статус
+    <code>unhealthy</code>, прогон останется в <code>queued</code>, сколько бы
+    вы ни ждали.
+  </p>
+
+<pre><code>docker compose ps worker
+docker compose logs worker</code></pre>
+
+  <p>
+    Healthcheck <code>worker</code> проверяет регистрацию обработчика в очереди,
+    поэтому подсказка в выводе обычно прямая. Частая причина рядом: контейнер
+    <code>redis</code> не запущен или адрес в <code>REDIS_URL</code> не совпадает
+    с сервисом Compose.
+  </p>
+
+  <h3>Прогон error из-за клонирования</h3>
+
+  <p>
+    Причина со словом «клон» означает, что <code>worker</code> не смог получить
+    репозиторий. Учётных данных для клонирования у него нет, поэтому приватный
+    адрес или опечатка в URL дают статус <code>error</code>.
+  </p>
+
+  <p>
+    В проекте должен стоять публичный HTTPS-адрес вида
+    <code>https://github.com/&lt;аккаунт&gt;/&lt;репозиторий&gt;.git</code>.
+    Локальный путь и смонтированный каталог не подходят: контейнер получает
+    только URL. Тот же прогон не создастся повторно, даже с исправленным
+    адресом: повторный запрос с тем же коммитом возвращает существующий прогон,
+    нужен новый коммит.
+  </p>
+
+  <h3>Вход не сохраняется</h3>
+
+  <p>
+    Форма принимает пароль, но следующая страница снова просит войти. Значит,
+    браузер не отправил cookie сессии. При <code>APP_ENV</code>, отличном от
+    <code>local</code>, cookie <code>pp_session</code> и CSRF помечаются
+    <code>Secure</code>: по HTTP браузер их не вернёт.
+  </p>
+
+  <p>
+    Для стенда по HTTP верните <code>APP_ENV=local</code> и перезапустите
+    сервисы. Для работы по HTTPS оставьте другое значение и поднимите обратный
+    прокси с сертификатом: порядок описан на странице
+    <a href="server.html">«Сервер»</a>.
+  </p>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="server.html">← Назад: сервер</a>
+    <a href="faq.html">Дальше: вопросы →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

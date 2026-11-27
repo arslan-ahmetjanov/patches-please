@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="32" height="32" role="img" aria-label="Штамп Patches, Please">
+  <g fill="#14120F" shape-rendering="crispEdges">
+    <path d="M0 0h16v2H0zM0 14h16v2H0zM0 0h2v16H0zM14 0h2v16h-2z"/>
+    <path d="M5 4h5v1H5zM5 5h1v1H5zM9 5h1v1H9zM5 6h1v1H5zM9 6h1v1H9zM5 7h5v1H5zM5 8h1v1H5zM5 9h1v1H5zM5 10h1v1H5zM5 11h1v1H5z"/>
+  </g>
+</svg>

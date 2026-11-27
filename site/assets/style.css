@@ -1,0 +1,608 @@
+/* Patches, Please: стили сайта документации.
+   Токены и правила взяты из docs/brand.md. Без JS и без внешних шрифтов:
+   сайт открывается офлайн и на GitHub Pages без сборки. */
+
+:root {
+  --paper: #faf7f0;
+  --paper-deep: #f2ece0;
+  --ink: #14120f;
+  --muted: #6e665a;
+  --line: #d8d1c2;
+  --pass: #1f6b3d;
+  --fail: #b3261e;
+  --term-bg: #0c120c;
+  --term-text: #b9f6c1;
+  --term-accent: #7ae582;
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  --measure: 72ch;
+  --radius: 3px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/1.65 var(--sans);
+  text-rendering: optimizeLegibility;
+}
+
+/* Шапка */
+
+.site-header {
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper-deep);
+}
+
+.site-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 12px 24px;
+}
+
+.brand {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
+}
+
+.brand img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9375rem;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.site-nav a[aria-current="page"] {
+  color: var(--ink);
+  border-bottom-color: var(--fail);
+}
+
+/* Основная колонка */
+
+main {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 32px 24px 56px;
+}
+
+.lead {
+  max-width: var(--measure);
+  font-size: 1.1875rem;
+  color: var(--muted);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: clamp(1.875rem, 1.4rem + 1.6vw, 2.5rem);
+}
+
+h2 {
+  margin: 48px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-size: 1.5rem;
+}
+
+h3 {
+  margin: 32px 0 8px;
+  font-size: 1.1875rem;
+}
+
+p,
+ul,
+ol,
+table,
+pre,
+figure {
+  max-width: var(--measure);
+}
+
+a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+ul,
+ol {
+  padding-left: 1.25em;
+}
+
+li + li {
+  margin-top: 6px;
+}
+
+strong {
+  font-weight: 600;
+}
+
+/* Код и команды */
+
+code {
+  font-family: var(--mono);
+  font-size: 0.875em;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  overflow-x: auto;
+  margin: 16px 0;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  background: var(--term-bg);
+  color: var(--term-text);
+  font: 400 0.875rem/1.55 var(--mono);
+}
+
+pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 1rem;
+  overflow-wrap: normal;
+}
+
+pre .prompt {
+  color: var(--term-accent);
+  user-select: none;
+}
+
+/* Таблицы */
+
+/* Обёртка нужна для узких экранов: таблица с тремя колонками не сжимается ниже
+   своего минимума, поэтому прокручивается сама, а страница остаётся на месте. */
+.table-wrap {
+  max-width: var(--measure);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+caption {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+th,
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  border-bottom: 2px solid var(--ink);
+  font-weight: 600;
+}
+
+tbody tr:hover {
+  background: #fff;
+}
+
+/* Блоки-заметки */
+
+.note {
+  max-width: var(--measure);
+  margin: 20px 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--line);
+  background: #fff;
+}
+
+.note > :first-child {
+  margin-top: 0;
+}
+
+.note > :last-child {
+  margin-bottom: 0;
+}
+
+.note--warn {
+  border-left-color: var(--fail);
+}
+
+.note--ok {
+  border-left-color: var(--pass);
+}
+
+.note__title {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Штамп: вердикт и дата, поворот как в интерфейсе */
+
+.stamp {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  transform: rotate(-8deg);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 40px;
+  max-width: var(--measure);
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verdicts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+.stamp--pass {
+  color: var(--pass);
+}
+
+.stamp--fail {
+  color: var(--fail);
+}
+
+/* Конвейер прогона: нумерованный список без JS */
+
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+  max-width: 78rem;
+  margin: 20px 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.pipeline li {
+  flex: 1 1 150px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-size: 0.9375rem;
+  counter-increment: step;
+}
+
+.pipeline li::before {
+  content: counter(step, decimal-leading-zero);
+  display: block;
+  margin-bottom: 4px;
+  color: var(--fail);
+  font: 600 0.75rem/1 var(--mono);
+  letter-spacing: 0.08em;
+}
+
+/* Скриншоты */
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  max-width: 78rem;
+  margin: 24px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shots li {
+  margin: 0;
+}
+
+.shots img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.shots figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+figure {
+  margin: 24px 0;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+/* Очень длинный снимок (полная страница отчёта) показываем сверху и даём
+   ссылку на файл целиком: иначе он занимает несколько экранов подряд. */
+.figure-tall img {
+  max-height: 620px;
+  object-fit: cover;
+  object-position: top center;
+}
+
+figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Шаги установки */
+
+.steps {
+  padding-left: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps > li {
+  position: relative;
+  margin: 0 0 20px;
+  padding-left: 44px;
+  counter-increment: step;
+}
+
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  font: 600 0.875rem/26px var(--mono);
+  text-align: center;
+}
+
+.steps > li + li {
+  margin-top: 0;
+}
+
+/* Кнопки */
+
+.button {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.button--ghost:hover,
+.button--ghost:focus-visible {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+/* Ссылки вперёд и назад */
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 56px;
+  padding-top: 20px;
+  border-top: 2px solid var(--ink);
+  font-size: 0.9375rem;
+}
+
+.pager a {
+  text-decoration: none;
+  border-bottom: 2px solid var(--line);
+}
+
+.pager a:hover,
+.pager a:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+/* Подвал */
+
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: var(--paper-deep);
+}
+
+.site-footer p {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 18px 24px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Служебное */
+
+.skip {
+  position: absolute;
+  left: -9999px;
+  padding: 8px 12px;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.skip:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 16px;
+  }
+
+  main {
+    padding: 24px 16px 40px;
+  }
+
+  .site-header__inner {
+    padding: 10px 16px;
+  }
+
+  .site-nav ul {
+    gap: 2px 14px;
+  }
+
+  .steps > li {
+    padding-left: 36px;
+  }
+
+  .steps > li::before {
+    width: 26px;
+    height: 26px;
+    font-size: 0.8125rem;
+    line-height: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    transform: none;
+  }
+}
+
+@media print {
+  .site-header,
+  .site-footer,
+  .pager,
+  .actions {
+    display: none;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  a::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #555;
+  }
+}

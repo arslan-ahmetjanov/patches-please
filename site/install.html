@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Установка: Patches, Please</title>
+<meta name="description" content="Как поднять стенд Patches, Please с нуля: предусловия, четыре сервиса Docker Compose, восемь шагов с ожидаемым выводом и проверка стенда.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html" aria-current="page">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Установка</h1>
+
+  <p class="lead">
+    Стенд поднимается на одной машине четырьмя сервисами Docker Compose. Ниже
+    порядок из runbook: предусловия, восемь шагов с командами, проверка и переход
+    к настройке. После каждой команды указано, что должно появиться в выводе.
+  </p>
+
+  <h2>Что получится</h2>
+
+  <p>Команда <code>docker compose up -d --build</code> поднимает четыре сервиса.</p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Сервисы локального стенда</caption>
+      <thead>
+        <tr>
+          <th scope="col">Сервис</th>
+          <th scope="col">Роль</th>
+          <th scope="col">Порт</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>postgres</code></td>
+          <td>Схема БД и история прогонов</td>
+          <td><code>5432</code></td>
+        </tr>
+        <tr>
+          <td><code>redis</code></td>
+          <td>Очередь RQ</td>
+          <td>не публикуется</td>
+        </tr>
+        <tr>
+          <td><code>api</code></td>
+          <td>REST API, страницы интерфейса, <code>/health</code></td>
+          <td><code>8000</code></td>
+        </tr>
+        <tr>
+          <td><code>worker</code></td>
+          <td>Очередь, клон репозитория, три сканера, отчёты</td>
+          <td>не публикуется</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>После развёртывания доступны три адреса:</p>
+
+  <ul>
+    <li><code>http://localhost:8000/health</code> отдаёт healthcheck сервиса;</li>
+    <li><code>http://localhost:8000/login</code> открывает вход в интерфейс;</li>
+    <li><code>http://localhost:8000/docs</code> показывает интерактивную схему API.</li>
+  </ul>
+
+  <p>
+    На развёртывание с чистой машины отводится 30 минут. Замер по этой
+    инструкции: 5 мин 51 с (351.3 с). Основное время занимает первая сборка
+    образов, повторная проходит быстрее за счёт кеша слоёв.
+  </p>
+
+  <h2>Что понадобится</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Предусловия установки</caption>
+      <thead>
+        <tr>
+          <th scope="col">Что</th>
+          <th scope="col">Требование</th>
+          <th scope="col">Как проверить</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>ОС</td>
+          <td>Windows 10/11 x64 с WSL2, macOS 13+, Linux x64/arm64</td>
+          <td>не требуется</td>
+        </tr>
+        <tr>
+          <td>Docker</td>
+          <td>Docker Desktop на Windows и macOS, на Linux Docker Engine с плагином Compose</td>
+          <td><code>docker version</code>, <code>docker compose version</code></td>
+        </tr>
+        <tr>
+          <td><code>uv</code></td>
+          <td>0.13 или новее, проверено на 0.13.9</td>
+          <td><code>uv --version</code></td>
+        </tr>
+        <tr>
+          <td><code>git</code></td>
+          <td>любая актуальная версия</td>
+          <td><code>git --version</code></td>
+        </tr>
+        <tr>
+          <td>Порты</td>
+          <td><code>8000</code> и <code>5432</code> свободны</td>
+          <td><code>netstat -ano | findstr :8000</code> (Windows)</td>
+        </tr>
+        <tr>
+          <td>Место на диске</td>
+          <td>С запасом под два образа, тома PostgreSQL и Redis и каталог отчётов</td>
+          <td>не требуется</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <span class="note__title">Проверка Docker</span>
+    <p>
+      <code>docker version</code> считается успешным, только если в выводе есть и
+      <code>Client:</code>, и <code>Server:</code>. Один <code>Client:</code> без
+      <code>Server:</code> означает, что движок не запущен, и идти дальше нельзя.
+    </p>
+  </div>
+
+  <h2>Шаги</h2>
+
+  <ol class="steps">
+    <li>
+      <p>Получите репозиторий.</p>
+<pre><code>git clone https://github.com/arslan-ahmetjanov/patches-please.git
+cd patches-please</code></pre>
+      <p>
+        Ожидаемо: код возврата <code>0</code>, в каталоге появились
+        <code>docker-compose.yml</code>, <code>Dockerfile</code>,
+        <code>Dockerfile.worker</code> и <code>pyproject.toml</code>.
+      </p>
+    </li>
+    <li>
+      <p>Установите <code>uv</code>. Windows, PowerShell:</p>
+<pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
+      <p>macOS и Linux:</p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+      <p>Откройте новый терминал, проверьте версию и поставьте зависимости проекта:</p>
+<pre><code>uv --version
+uv sync</code></pre>
+      <p>
+        Ожидаемо: строка вида <code>uv 0.13.9</code> (версия может быть новее) и
+        код возврата <code>0</code>. <code>uv</code> скачает Python 3.12 по
+        <code>.python-version</code> и создаст <code>.venv</code>. Шаг нужен для
+        команд с хоста: миграций, сева, CLI и тестов; сам стек Docker работает и
+        без него.
+      </p>
+    </li>
+    <li>
+      <p>
+        Запустите Docker Desktop и дождитесь состояния «Engine running». Затем
+        проверьте движок:
+      </p>
+<pre><code>docker version
+docker compose version</code></pre>
+      <p>
+        Ожидаемо: в <code>docker version</code> заполнены разделы <code>Client</code>
+        и <code>Server</code>; <code>docker compose version</code> печатает версию
+        плагина, код возврата <code>0</code>.
+      </p>
+      <p>
+        Если вывод заканчивается ошибкой <code>failed to connect to the docker API
+        ... dockerDesktopLinuxEngine</code>, движок не поднят. На Windows служба
+        запускается только с правами администратора:
+      </p>
+<pre><code>sc start com.docker.service</code></pre>
+      <p>
+        Ошибка <code>5</code> («Отказано в доступе») означает, что прав не хватило.
+      </p>
+    </li>
+    <li>
+      <p>Скопируйте пример окружения:</p>
+<pre><code>cp .env.example .env</code></pre>
+      <p>PowerShell:</p>
+<pre><code>Copy-Item .env.example .env</code></pre>
+      <p>
+        Ожидаемо: в каталоге появился файл <code>.env</code>, код возврата
+        <code>0</code>. Файл не коммитится и в образ не копируется. Значения по
+        умолчанию годятся только для локального стенда, переменные разобраны на
+        странице <a href="configure.html">«Настройка»</a>.
+      </p>
+      <div class="note note--warn">
+        <span class="note__title">Порт 8000 на Windows</span>
+        <p>
+          Windows резервирует диапазон портов с 7979 по 8078. Если <code>8000</code>
+          попал в него, запуск завершается ошибкой <code>bind: address already in
+          use</code>, хотя порт свободен. Посмотрите занятые диапазоны:
+        </p>
+<pre><code>netsh interface ipv4 show excludedportrange protocol=tcp</code></pre>
+        <p>
+          Обойдите ограничение через <code>.env</code>: задайте
+          <code>API_PORT=8081</code>. Дальше вместо <code>8000</code> в адресах
+          будет <code>8081</code>, порядок шагов не меняется.
+        </p>
+      </div>
+    </li>
+    <li>
+      <p>Соберите и запустите стек:</p>
+<pre><code>docker compose up -d --build</code></pre>
+      <p>
+        Ожидаемо: код возврата <code>0</code>, в конце вывода строки
+        <code>Started</code> или <code>Running</code> для четырёх контейнеров.
+        Первая сборка скачивает базовый образ, Semgrep, Gitleaks, Trivy и базу
+        Trivy; сеть нужна только на этом шаге.
+      </p>
+    </li>
+    <li>
+      <p>Проверьте контейнеры и API:</p>
+<pre><code>docker compose ps
+curl http://localhost:8000/health</code></pre>
+      <p>PowerShell вместо <code>curl</code>:</p>
+<pre><code>Invoke-RestMethod http://localhost:8000/health</code></pre>
+      <p>
+        Ожидаемо: <code>docker compose ps</code> показывает четыре строки в
+        состоянии <code>Up</code> с пометкой <code>(healthy)</code>;
+        <code>/health</code> отвечает HTTP 200 и телом <code>{"status":"ok"}</code>.
+        Healthcheck-и стартуют не сразу: <code>start_period</code> 10 секунд у
+        <code>postgres</code> и <code>api</code>, 15 секунд у <code>worker</code>.
+        Если статус <code>starting</code>, подождите до минуты и повторите.
+      </p>
+    </li>
+    <li>
+      <p>Примените миграции:</p>
+<pre><code>uv run alembic upgrade head</code></pre>
+      <p>
+        Ожидаемо: семь строк <code>Running upgrade …</code>, последняя с номером
+        <code>0007</code>. Повторный запуск ничего не делает и завершается с кодом
+        <code>0</code>.
+      </p>
+<pre><code>uv run alembic check</code></pre>
+      <p>Ожидаемо: <code>No new upgrade operations detected.</code></p>
+      <div class="note note--warn">
+        <span class="note__title">Миграции отдельным шагом</span>
+        <p>
+          API миграции при старте не применяет. Без этого шага страницы вернут
+          ошибку обращения к несуществующим таблицам, хотя <code>/health</code>
+          уже отвечает.
+        </p>
+      </div>
+    </li>
+    <li>
+      <p>
+        Создайте пользователя, проект и токен. Регистрации в интерфейсе нет,
+        учётную запись создаёт <code>scripts/seed_demo.py</code>:
+      </p>
+<pre><code>export DEMO_PASSWORD='&lt;пароль не короче 8 символов&gt;'
+export DEMO_REPO_URL='https://github.com/arslan-ahmetjanov/patches-please-demo.git'
+uv run python scripts/seed_demo.py</code></pre>
+      <p>PowerShell:</p>
+<pre><code>$env:DEMO_PASSWORD = "&lt;пароль не короче 8 символов&gt;"
+$env:DEMO_REPO_URL = "https://github.com/arslan-ahmetjanov/patches-please-demo.git"
+uv run python scripts/seed_demo.py</code></pre>
+      <p>Ожидаемо: код возврата <code>0</code> и вывод вида</p>
+<pre><code>пользователь создан: demo@example.com
+проект создан: patches-please-demo (&lt;uuid&gt;)
+токен создан: ci (&lt;uuid&gt;)
+
+демо-стенд готов: пользователь demo@example.com, проект patches-please-demo (&lt;uuid&gt;)
+токен проекта (показывается один раз): pp_…</code></pre>
+      <p>
+        Токен печатается один раз: в базе хранится только SHA-256. Сохраните
+        значение, оно нужно для прогона. Код возврата <code>1</code> означает
+        ошибку параметров, подключения или описи. Повторный запуск с теми же
+        параметрами не создаёт дублей.
+      </p>
+    </li>
+  </ol>
+
+  <h2>Проверка</h2>
+
+  <p>
+    Стенд отвечает, если <code>docker compose ps</code> показывает четыре
+    контейнера без перезапусков, а <code>/health</code> возвращает
+    <code>{"status":"ok"}</code>. Дальше проверьте остальные адреса:
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Что открывается после установки</caption>
+      <thead>
+        <tr>
+          <th scope="col">Адрес</th>
+          <th scope="col">Что там</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>http://localhost:8000/login</code></td>
+          <td>Форма входа. Учётная запись создана на шаге 8.</td>
+        </tr>
+        <tr>
+          <td><code>http://localhost:8000/projects</code></td>
+          <td>Список проектов пользователя после входа.</td>
+        </tr>
+        <tr>
+          <td><code>http://localhost:8000/docs</code></td>
+          <td>Интерактивная схема REST API.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Логи обоих приложений, если что-то не отвечает:</p>
+
+<pre><code>docker compose logs -f --tail=100 api worker</code></pre>
+
+  <p>
+    Порядок разбора типовых сбоев и таблица «симптом, причина, что делать» лежат
+    на странице <a href="troubleshooting.html">«Неполадки»</a>.
+  </p>
+
+  <h2>Что дальше</h2>
+
+  <ul>
+    <li>
+      Смените пароль базы и разберитесь с <code>APP_ENV</code>:
+      <a href="configure.html">«Настройка»</a>.
+    </li>
+    <li>
+      Запустите первый прогон и поставьте опись:
+      <a href="first-scan.html">«Первый прогон»</a>.
+    </li>
+    <li>
+      Подключите проверку к пайплайну: <a href="ci.html">«CI»</a>.
+    </li>
+  </ul>
+
+  <div class="note note--warn">
+    <span class="note__title">Перед показом</span>
+    <p>
+      Пароль PostgreSQL по умолчанию годится только для локального стенда: перед
+      демонстрацией смените его в <code>.env</code> и в <code>DATABASE_URL</code>.
+      Файл <code>.env</code> не коммитится.
+    </p>
+  </div>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="index.html">← Назад: обзор</a>
+    <a href="configure.html">Дальше: настройка →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

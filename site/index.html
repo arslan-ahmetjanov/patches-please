@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patches, Please: контроль безопасности перед релизом</title>
+<meta name="description" content="Patches, Please запускает проверки безопасности в CI, сводит находки к одной модели, применяет политику и блокирует релиз при критических уязвимостях.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html" aria-current="page">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Проверка безопасности, которая останавливает релиз</h1>
+
+  <p class="lead">
+    Patches, Please встраивается в конвейер CI, запускает три сканера, приводит
+    находки к одной модели и блокирует выпуск релиза, если в коде появилась
+    критическая уязвимость.
+  </p>
+
+  <ol class="pipeline" aria-label="Путь коммита через проверку">
+    <li>Коммит из CI</li>
+    <li>Semgrep, Gitleaks, Trivy</li>
+    <li>Единая модель находок</li>
+    <li>Политика и опись</li>
+    <li>Вердикт и код выхода</li>
+  </ol>
+
+  <div class="actions">
+    <a class="button" href="install.html">Установить стенд</a>
+    <a class="button button--ghost" href="ci.html">Подключить к CI</a>
+  </div>
+
+  <h2>Что делает система</h2>
+
+  <ul>
+    <li><strong>Один вход для трёх классов проверок.</strong> SAST по коду,
+      поиск секретов и уязвимые зависимости с приоритетами. Сканеры живут в
+      образе worker и работают офлайн.</li>
+    <li><strong>Одна модель находок.</strong> SARIF нормализуется, находка
+      получает отпечаток и переезжает из прогона в прогон как `existing`, а не
+      всплывает заново.</li>
+    <li><strong>Политика проекта.</strong> Порог по severity, опись (baseline) и
+      разрешения со сроком. Вердикт `pass` или `fail` считается на сервере.</li>
+    <li><strong>Код выхода для пайплайна.</strong> Клиент ждёт вердикт и
+      возвращает `0` при `pass`, `1` при `fail`, остальные коды описывают
+      ошибки и таймаут.</li>
+    <li><strong>История и отчёт.</strong> Прогоны, метрики, тренд, JSON и HTML
+      по каждому прогону; секреты в находках маскируются до записи.</li>
+  </ul>
+
+  <ul class="verdicts">
+    <li>
+      <span class="stamp stamp--fail">Задержан</span>
+      на уязвимом коммите демонстрационного репозитория
+    </li>
+    <li>
+      <span class="stamp stamp--pass">Пропущен</span>
+      после того, как исторические находки попали в опись
+    </li>
+  </ul>
+
+  <h2>Как это выглядит</h2>
+
+  <ul class="shots">
+    <li>
+      <figure>
+        <img src="assets/projects.webp" alt="Страница со списком проектов и формой создания нового проекта" width="1200" height="844" loading="lazy">
+        <figcaption>Проекты: объект проверки и адрес репозитория.</figcaption>
+      </figure>
+    </li>
+    <li>
+      <figure>
+        <img src="assets/scan.webp" alt="Страница прогона: штамп вердикта, метрики и таблица находок с фильтрами" width="1200" height="2594" loading="lazy">
+        <figcaption>Прогон: вердикт, метрики и находки с фильтрами.</figcaption>
+      </figure>
+    </li>
+    <li>
+      <figure>
+        <img src="assets/project.webp" alt="Страница проекта: последние прогоны, тренд и топ находок" width="1200" height="963" loading="lazy">
+        <figcaption>Проект: тренд, последние прогоны и топ находок.</figcaption>
+      </figure>
+    </li>
+  </ul>
+
+  <h2>Быстрый старт</h2>
+
+  <p>
+    Нужны Docker Desktop (или Docker Engine с плагином Compose) и
+    <a href="https://docs.astral.sh/uv/">uv</a>. Подробный порядок с ожидаемым
+    выводом каждой команды лежит на странице
+    <a href="install.html">«Установка»</a>.
+  </p>
+
+<pre><code>git clone https://github.com/arslan-ahmetjanov/patches-please.git
+cd patches-please
+uv sync
+cp .env.example .env
+docker compose up -d --build
+curl http://localhost:8000/health
+uv run alembic upgrade head</code></pre>
+
+  <p>
+    Ответ `{"status":"ok"}` значит, что API поднялся. Вход в интерфейс:
+    <code>http://localhost:8000/login</code>. Регистрации нет, учётную запись,
+    проект и токен создаёт <code>scripts/seed_demo.py</code>: это шаг 8 в
+    инструкции по установке.
+  </p>
+
+  <h2>Что нужно</h2>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Минимальный набор для локального стенда</caption>
+      <thead>
+        <tr>
+          <th scope="col">Что</th>
+          <th scope="col">Зачем</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Docker Compose</td>
+          <td>Четыре сервиса: PostgreSQL, Redis, API и worker.</td>
+        </tr>
+        <tr>
+          <td>uv 0.13 или новее</td>
+          <td>Миграции, клиент для CI, тесты, установка Python 3.12.</td>
+        </tr>
+        <tr>
+          <td>Свободные порты 8000 и 5432</td>
+          <td>API и PostgreSQL на хосте. Порт меняется в <code>.env</code>.</td>
+        </tr>
+        <tr>
+          <td>Публичный репозиторий для проверки</td>
+          <td>Worker клонирует его без учётных данных; или свой стенд.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Границы</h2>
+
+  <ul>
+    <li>Развёртывание рассчитано на Docker Compose на одной машине, без
+      кластера и внешней PostgreSQL.</li>
+    <li>Trivy проверяет файловую систему репозитория, а не образы контейнеров.</li>
+    <li>База уязвимостей Trivy зашита в образ и обновляется пересборкой
+      worker.</li>
+    <li>Клон репозитория идёт по сети: приватный адрес даёт прогон со статусом
+      <code>error</code>, пока не настроен доступ.</li>
+  </ul>
+
+  <p>
+    Остальные ограничения и типовые ошибки: <a href="troubleshooting.html">«Неполадки»</a>
+    и <a href="faq.html">«Вопросы»</a>.
+  </p>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <span></span>
+    <a href="install.html">Дальше: установка →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

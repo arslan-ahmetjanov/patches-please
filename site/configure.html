@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Настройка: Patches, Please</title>
+<meta name="description" content="Переменные .env, смена пароля и порта базы, режим APP_ENV и HTTPS, том отчётов, обновление стека и резервная копия базы Patches, Please.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html" aria-current="page">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Настройка</h1>
+
+  <p class="lead">
+    Стенд читает параметры из файла <code>.env</code>. Здесь описано, что в нём
+    меняется, как правка пароля или порта отражается на миграциях, где лежат
+    отчёты и как обновлять стек и делать резервную копию.
+  </p>
+
+  <h2>Файл .env</h2>
+
+  <p>
+    Основа файла: <code>.env.example</code>. Скопируйте его на шаге 4 установки.
+    Файл <code>.env</code> попадает в <code>.gitignore</code>, в образ не
+    копируется и в репозиторий не коммитится.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <caption>Переменные окружения стенда</caption>
+      <thead>
+        <tr>
+          <th scope="col">Переменная</th>
+          <th scope="col">По умолчанию</th>
+          <th scope="col">Назначение</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>APP_ENV</code></td>
+          <td><code>local</code></td>
+          <td>
+            <code>local</code>: стенд по HTTP. Любое другое значение включает
+            <code>Secure</code> у cookie сессии и CSRF, то есть требует HTTPS.
+          </td>
+        </tr>
+        <tr>
+          <td><code>API_PORT</code></td>
+          <td><code>8000</code></td>
+          <td>Порт API на хосте.</td>
+        </tr>
+        <tr>
+          <td><code>POSTGRES_USER</code></td>
+          <td><code>patches_please</code></td>
+          <td>Пользователь БД.</td>
+        </tr>
+        <tr>
+          <td><code>POSTGRES_PASSWORD</code></td>
+          <td>значение из <code>.env.example</code></td>
+          <td>
+            Пароль БД. Для демо-стенда и защиты смените: значение по умолчанию
+            годится только для локального стенда.
+          </td>
+        </tr>
+        <tr>
+          <td><code>POSTGRES_DB</code></td>
+          <td><code>patches_please</code></td>
+          <td>Имя базы.</td>
+        </tr>
+        <tr>
+          <td><code>POSTGRES_PORT</code></td>
+          <td><code>5432</code></td>
+          <td>Порт PostgreSQL на хосте.</td>
+        </tr>
+        <tr>
+          <td><code>DATABASE_URL</code></td>
+          <td><code>postgresql+psycopg://patches_please:…@postgres:5432/patches_please</code></td>
+          <td>
+            Строка подключения для контейнеров. Хост <code>postgres</code>
+            совпадает с именем сервиса Compose.
+          </td>
+        </tr>
+        <tr>
+          <td><code>REDIS_URL</code></td>
+          <td><code>redis://redis:6379/0</code></td>
+          <td>Очередь для контейнеров.</td>
+        </tr>
+        <tr>
+          <td><code>REPORTS_DIR</code></td>
+          <td><code>/app/reports</code></td>
+          <td>
+            Каталог отчётов внутри <code>worker</code>, точка монтирования тома
+            <code>reportsdata</code>.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    Миграции с хоста запускаются без этой переменной и по умолчанию идут на
+    <code>localhost:5432</code>: значение задано в <code>patches_please/db.py</code>.
+  </p>
+
+  <div class="note note--warn">
+    <span class="note__title">Хост postgres</span>
+    <p>
+      <code>DATABASE_URL</code> из <code>.env</code> указывает на хост
+      <code>postgres</code>, которого нет на хостовой машине. Не экспортируйте его
+      в оболочку хоста: для команд с хоста нужен <code>localhost</code>. Если
+      переменная уже попала в окружение, миграции падают с ошибкой
+      <code>password authentication failed</code>.
+    </p>
+  </div>
+
+  <h2>Что меняется вместе с паролем и портом</h2>
+
+  <p>
+    Пароль и порт заданы в двух местах: отдельными переменными и внутри
+    <code>DATABASE_URL</code>. Меняйте их вместе, иначе контейнеры не подключатся
+    к базе. Если <code>POSTGRES_PORT</code> отличается от <code>5432</code>,
+    миграции с хоста тоже требуют явного <code>DATABASE_URL</code>:
+  </p>
+
+<pre><code># bash, Git Bash, WSL
+DATABASE_URL=postgresql+psycopg://patches_please:пароль@localhost:5433/patches_please \
+  uv run alembic upgrade head</code></pre>
+
+<pre><code># PowerShell
+$env:DATABASE_URL = "postgresql+psycopg://patches_please:пароль@localhost:5433/patches_please"
+uv run alembic upgrade head</code></pre>
+
+  <p>
+    Пароль в строке подключения подставьте свой. После правки <code>.env</code>
+    перезапустите сервисы, чтобы они получили новые значения:
+  </p>
+
+<pre><code>docker compose up -d</code></pre>
+
+  <div class="note note--warn">
+    <span class="note__title">Пароль уже созданной базы</span>
+    <p>
+      Том <code>pgdata</code> создаётся при первом запуске с тем паролем, который
+      стоял в <code>.env</code>. Правка <code>POSTGRES_PASSWORD</code> на готовом
+      стенде сама по себе пароль внутри PostgreSQL не меняет. Для чистого стенда
+      пересоздайте том командой <code>docker compose down -v</code>; на стенде с
+      данными смените пароль средствами PostgreSQL.
+    </p>
+  </div>
+
+  <h2>APP_ENV и HTTPS</h2>
+
+  <p>
+    При <code>APP_ENV=local</code> стенд работает по HTTP, cookie сессии
+    <code>pp_session</code> приходит без флага <code>Secure</code>. Любое другое
+    значение включает <code>Secure</code> у cookie и CSRF, поэтому браузер не
+    отправит их по HTTP и вход не сохранится.
+  </p>
+
+  <p>
+    Для стенда по HTTP верните <code>APP_ENV=local</code>. Для работы по HTTPS
+    задайте другое значение, например <code>production</code>, и поднимите
+    обратный прокси с сертификатом: порядок описан на странице
+    <a href="server.html">«Сервер»</a>.
+  </p>
+
+  <h2>Отчёты и том reportsdata</h2>
+
+  <p>
+    После прогона <code>worker</code> пишет два файла в каталог
+    <code>REPORTS_DIR</code>: <code>&lt;scan_id&gt;.json</code> и
+    <code>&lt;scan_id&gt;.html</code>. Каталог смонтирован из тома
+    <code>reportsdata</code>, поэтому файлы переживают пересоздание контейнера.
+    HTML самодостаточен: стили встроены, открывается локально.
+  </p>
+
+  <p>
+    Метода API для скачивания отчётов нет: файлы лежат на томе. Том удаляется
+    командой <code>docker compose down -v</code> вместе с базой и очередью.
+  </p>
+
+  <h2>Обновление стека</h2>
+
+  <p>После <code>git pull</code> пересоберите образы и примените миграции:</p>
+
+<pre><code>docker compose up -d --build
+uv run alembic upgrade head</code></pre>
+
+  <p>
+    Пересборка нужна и тогда, когда обновилась база уязвимостей Trivy: она
+    зашита в образ <code>worker</code>. Порядок обновления сканеров описан в
+    <code>docs/scanners.md</code>.
+  </p>
+
+  <h2>Резервная копия базы</h2>
+
+  <p>
+    Пользователь и база в командах берутся из <code>POSTGRES_USER</code> и
+    <code>POSTGRES_DB</code>. Дамп:
+  </p>
+
+<pre><code>docker compose exec -T postgres pg_dump -U patches_please patches_please &gt; backup.sql</code></pre>
+
+  <p>Восстановление из файла:</p>
+
+<pre><code>docker compose exec -T postgres psql -U patches_please patches_please &lt; backup.sql</code></pre>
+
+  <p>
+    Файл <code>backup.sql</code> содержит данные базы и не должен попадать в
+    репозиторий. Том <code>reportsdata</code> с отчётами копируется отдельно:
+    внутри контейнера это каталог <code>/app/reports</code>. Восстановление
+    проверяйте на отдельном стенде, а не поверх рабочей базы.
+  </p>
+
+  <h2>Политика и разрешения</h2>
+
+  <p>
+    Политика вердикта и разрешения живут на странице настроек проекта:
+    <code>/projects/&lt;slug&gt;/settings</code>. Менять их может только владелец
+    проекта, формы защищены CSRF-токеном.
+  </p>
+
+  <ul>
+    <li>
+      <strong>Политика вердикта.</strong> Блокирующие уровни важности, режим
+      деградации при отказе сканера и таймаут сканеров. Пока политику не
+      сохранили, блокируются критичные и высокие находки.
+    </li>
+    <li>
+      <strong>Исключения находок.</strong> Разрешение задаётся правилом, путём,
+      причиной и сроком действия в UTC. Пока срок не наступил, находки этого
+      правила по подходящему пути не влияют на вердикт; после срока они снова
+      считаются новыми. Каждое действие попадает в журнал аудита.
+    </li>
+  </ul>
+
+  <figure>
+    <img src="assets/settings.webp" alt="Страница настроек проекта: политика, пороги и разрешения" width="1200" height="1381" loading="lazy">
+    <figcaption>
+      Настройки проекта: блокирующие уровни, режим деградации, таймаут сканеров и
+      форма разрешения со сроком.
+    </figcaption>
+  </figure>
+
+  <p>
+    Вердикт считается на сервере: порог по severity, опись и разрешения
+    применяются в одном месте, клиент только передаёт код выхода в пайплайн.
+  </p>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="install.html">← Назад: установка</a>
+    <a href="first-scan.html">Дальше: первый прогон →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>

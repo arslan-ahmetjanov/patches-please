@@ -17,6 +17,7 @@ htmlcov/
 AGENTS.md
 specs/
 docs/
+site/
 
 # Переменные окружения и ключи: в образ не попадают
 .env

@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Сервер: Patches, Please</title>
+<meta name="description" content="Развёртывание Patches, Please на своём сервере: домен, пользователь без root, ufw, Docker, .env с production-режимом, nginx, HTTPS и резервные копии.">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.svg" alt="" width="32" height="32">
+      <span>Patches, Please</span>
+    </a>
+    <nav class="site-nav" aria-label="Разделы документации">
+      <ul>
+        <li><a href="index.html">Обзор</a></li>
+        <li><a href="install.html">Установка</a></li>
+        <li><a href="configure.html">Настройка</a></li>
+        <li><a href="first-scan.html">Первый прогон</a></li>
+        <li><a href="ci.html">CI</a></li>
+        <li><a href="server.html" aria-current="page">Сервер</a></li>
+        <li><a href="troubleshooting.html">Неполадки</a></li>
+        <li><a href="faq.html">Вопросы</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <h1>Сервер</h1>
+
+  <p class="lead">
+    VPS не входит в поставку. Нужен свой сервер с публичным адресом и доменом:
+    раннер GitHub и GitLab не видит <code>localhost</code>, поэтому стенд на
+    рабочей машине для CI недоступен.
+  </p>
+
+  <div class="note note--warn">
+    <span class="note__title">Что нужно от вас</span>
+    <p>
+      Сервер у выбранного провайдера, домен с A-записью на адрес сервера и
+      сертификат для HTTPS. Всё остальное ставится командами ниже. Развёртывание
+      рассчитано на Docker Compose на одной машине: кластер, балансировка и
+      внешняя PostgreSQL сюда не входят.
+    </p>
+  </div>
+
+  <ol class="steps">
+    <li>
+      <p>
+        Возьмите сервер с Ubuntu 24.04 LTS, 2 ГБ ОЗУ и больше и заведите домен.
+        A-запись домена должна указывать на публичный адрес сервера до выпуска
+        сертификата.
+      </p>
+    </li>
+    <li>
+      <p>Создайте пользователя без root и перенесите на него ключ SSH:</p>
+<pre><code>adduser deploy
+usermod -aG sudo deploy</code></pre>
+      <p>С локальной машины:</p>
+<pre><code>ssh-copy-id deploy@&lt;домен&gt;</code></pre>
+      <p>
+        Дальше все команды выполняются в сеансе этого пользователя. Проверка:
+        <code>sudo -v</code> спрашивает пароль и не выдаёт ошибку.
+      </p>
+    </li>
+    <li>
+      <p>Закройте всё, кроме SSH, HTTP и HTTPS:</p>
+<pre><code>sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+sudo ufw status</code></pre>
+      <p>
+        Порты <code>8000</code> и <code>5432</code> наружу не открывайте:
+        обратный прокси обращается к API локально, а PostgreSQL нужен только
+        контейнерам.
+      </p>
+    </li>
+    <li>
+      <p>
+        Установите Docker Engine и плагин Compose по официальной инструкции
+        <a href="https://docs.docker.com/engine/install/ubuntu/">Docker для
+        Ubuntu</a>. Скрипт установки из той же документации:
+      </p>
+<pre><code>curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER</code></pre>
+      <p>
+        Выйдите из сеанса и войдите снова, чтобы применилась группа
+        <code>docker</code>, затем проверьте:
+      </p>
+<pre><code>docker version
+docker compose version</code></pre>
+      <p>
+        Ожидаемо: заполнены разделы <code>Client</code> и <code>Server</code>,
+        плагин Compose печатает версию.
+      </p>
+    </li>
+    <li>
+      <p>Клонируйте репозиторий:</p>
+<pre><code>git clone https://github.com/arslan-ahmetjanov/patches-please.git
+cd patches-please</code></pre>
+    </li>
+    <li>
+      <p>
+        Создайте <code>.env</code>, поменяйте пароль базы и включите режим для
+        HTTPS:
+      </p>
+<pre><code>cp .env.example .env</code></pre>
+      <p>
+        В файле задайте режим и пароль базы. Пароль в двух строках должен
+        совпадать:
+      </p>
+<pre><code>APP_ENV=production
+POSTGRES_PASSWORD=&lt;надёжный пароль&gt;
+DATABASE_URL=postgresql+psycopg://patches_please:&lt;надёжный пароль&gt;@postgres:5432/patches_please</code></pre>
+      <p>
+        Пароль должен совпадать в <code>POSTGRES_PASSWORD</code> и в
+        <code>DATABASE_URL</code>. <code>API_PORT</code> оставьте равным
+        <code>8000</code>. Compose публикует порт на всех интерфейсах, поэтому
+        наружу его закрывает файрвол из шага 3, а обратный прокси обращается к API
+        по <code>127.0.0.1</code>.
+      </p>
+    </li>
+    <li>
+      <p>Соберите и запустите стек:</p>
+<pre><code>docker compose up -d --build</code></pre>
+      <p>
+        Ожидаемо: четыре контейнера в состоянии <code>Up</code>, у всех пометка
+        <code>(healthy)</code>. Первая сборка скачивает базовый образ, сканеры и
+        базу Trivy.
+      </p>
+    </li>
+    <li>
+      <p>
+        Поставьте <code>uv</code>, примените миграции и создайте первый аккаунт:
+      </p>
+<pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
+      <p>В новом терминале:</p>
+<pre><code>uv sync
+uv run alembic upgrade head</code></pre>
+      <p>Затем сев:</p>
+<pre><code>export DEMO_PASSWORD='&lt;пароль не короче 8 символов&gt;'
+export DEMO_REPO_URL='https://github.com/arslan-ahmetjanov/patches-please-demo.git'
+uv run python scripts/seed_demo.py</code></pre>
+      <p>
+        Токен из вывода сохраните: он показывается один раз. Если стенд нужен
+        без демо, укажите в <code>DEMO_REPO_URL</code> адрес своего публичного
+        репозитория.
+      </p>
+    </li>
+    <li>
+      <p>Поставьте nginx и certbot:</p>
+<pre><code>sudo apt-get update
+sudo apt-get install -y nginx certbot python3-certbot-nginx</code></pre>
+      <p>
+        Конфигурация сайта в <code>/etc/nginx/sites-available/patches-please</code>:
+      </p>
+<pre><code>server {
+    listen 80;
+    server_name patches.example.ru;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+      <p>
+        Замените <code>patches.example.ru</code> своим доменом, включите сайт и
+        проверьте конфигурацию:
+      </p>
+<pre><code>sudo ln -s /etc/nginx/sites-available/patches-please /etc/nginx/sites-enabled/patches-please
+sudo nginx -t
+sudo systemctl reload nginx</code></pre>
+      <p>Выпустите сертификат: certbot сам допишет блок для 443 и настроит редирект.</p>
+<pre><code>sudo certbot --nginx -d &lt;домен&gt;</code></pre>
+    </li>
+    <li>
+      <p>Проверьте стенд снаружи:</p>
+<pre><code>curl https://&lt;домен&gt;/health</code></pre>
+      <p>
+        Ожидаемо: HTTP 200 и тело <code>{"status":"ok"}</code>. Вход:
+        <code>https://&lt;домен&gt;/login</code>.
+      </p>
+      <div class="note note--warn">
+        <span class="note__title">Без HTTPS вход не работает</span>
+        <p>
+          <code>APP_ENV</code> со значением, отличным от <code>local</code>,
+          включает <code>Secure</code> у cookie сессии и CSRF. По HTTP браузер
+          такие cookie не отправит, и вход не сохранится. Сначала сертификат,
+          потом проверка входа.
+        </p>
+      </div>
+    </li>
+    <li>
+      <p>
+        Настройте резервные копии. Дамп базы берётся командой из runbook,
+        пользователь и база совпадают с <code>POSTGRES_USER</code> и
+        <code>POSTGRES_DB</code>:
+      </p>
+<pre><code>docker compose exec -T postgres pg_dump -U patches_please patches_please &gt; backup.sql</code></pre>
+      <p>
+        Поставьте её в <code>cron</code> и храните файлы вне сервера. Том
+        <code>reportsdata</code> с отчётами копируется отдельно: внутри
+        контейнера это каталог <code>/app/reports</code>. Проверку восстановления
+        делайте на отдельном стенде:
+      </p>
+<pre><code>docker compose exec -T postgres psql -U patches_please patches_please &lt; backup.sql</code></pre>
+    </li>
+    <li>
+      <p>Обновление после выхода новой версии:</p>
+<pre><code>git pull
+docker compose up -d --build
+uv run alembic upgrade head</code></pre>
+      <p>
+        Пересборка обязательна и тогда, когда обновилась база уязвимостей Trivy:
+        она зашита в образ <code>worker</code> и между пересборками не меняется.
+      </p>
+    </li>
+  </ol>
+
+  <h2>Что учесть на сервере</h2>
+
+  <ul>
+    <li>
+      <strong>Клон идёт по сети.</strong> Сканеры работают офлайн, но
+      <code>worker</code> клонирует репозиторий проекта с GitHub или GitLab.
+      Серверу нужен исходящий доступ к провайдеру, иначе прогон завершится
+      статусом <code>error</code>.
+    </li>
+    <li>
+      <strong>Приватный репозиторий не клонируется.</strong> Учётных данных для
+      клонирования у <code>worker</code> нет: указывайте публичный HTTPS-адрес в
+      <code>repo_url</code>.
+    </li>
+    <li>
+      <strong>Отдельного домена для API не нужно.</strong> Интерфейс и REST API
+      живут на одном сервисе, поэтому одного адреса хватает. В
+      <code>PATCHES_PLEASE_URL</code> для CI укажите этот же адрес без
+      <code>/api/v1</code>.
+    </li>
+    <li>
+      <strong>Миграции отдельным шагом.</strong> API не применяет их при старте:
+      после каждого <code>git pull</code> нужен <code>uv run alembic upgrade
+      head</code>.
+    </li>
+  </ul>
+
+  <p>
+    Дальше подключите сервис к пайплайну: <a href="ci.html">«CI»</a>. Если
+    что-то не поднимается, начните с раздела <a href="troubleshooting.html">«Неполадки»</a>.
+  </p>
+
+  <nav class="pager" aria-label="Соседние разделы">
+    <a href="ci.html">← Назад: CI</a>
+    <a href="troubleshooting.html">Дальше: неполадки →</a>
+  </nav>
+</main>
+
+<footer class="site-footer">
+  <p>
+    Patches, Please, 2026. Код и документация под лицензией MIT.
+    <a href="https://github.com/arslan-ahmetjanov/patches-please">Исходный код</a>,
+    <a href="https://github.com/arslan-ahmetjanov/patches-please-demo">демонстрационный репозиторий</a>.
+  </p>
+</footer>
+</body>
+</html>
