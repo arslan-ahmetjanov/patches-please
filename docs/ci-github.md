@@ -86,6 +86,39 @@ jobs:
 `github.sha`. Если у проекта уже заведён baseline, исторические находки
 (фикстуры тестов, учебный `demo/`) не блокируют прогон, а новые блокируют.
 
+### Локальный прогон через act
+
+Раннер GitHub недоступен без публичного адреса, но сам workflow можно прогнать
+локально через `act` (nektos/act): он выполняет те же шаги в Docker-контейнере.
+
+Что подменяется:
+
+- образ раннера: `-P ubuntu-latest=catthehacker/ubuntu:act-latest`;
+- публичный адрес: вместо туннеля адрес, доступный из контейнера,
+  `http://host.docker.internal:8081` или IP машины в локальной сети;
+- действие `astral-sh/setup-uv@v7`: на этой сети его загрузчик в контейнере
+  зависает, поэтому действие подменяется локальной папкой через
+  `--local-repository`; заглушка ставит ту же версию `uv` через `curl`.
+
+Секрет передаётся файлом: `--secret-file .secrets` со строкой
+`PATCHES_PLEASE_TOKEN=pp_...`. После прогона файл удалить.
+
+```bash
+act workflow_dispatch -W .github/workflows/demo-scan.yml \
+  --secret-file .secrets \
+  --var PATCHES_PLEASE_URL=http://host.docker.internal:8081 \
+  -P ubuntu-latest=catthehacker/ubuntu:act-latest \
+  --pull=false --container-architecture linux/amd64 \
+  --local-repository astral-sh/setup-uv@v7=<путь к заглушке> \
+  --action-offline-mode
+```
+
+Проверено 27.11.2026: шаги проверки входов, маскирования токена, установки `uv`
+и установки CLI проходят. Дойти до конца не удалось из-за нестабильности Docker
+Desktop на этой машине: движок останавливается посреди `uv sync` с ошибкой
+`failed to connect to the docker API`. Это ограничение окружения, а не
+workflow: на машине с устойчивым Docker прогон проходит целиком.
+
 ### Входы
 
 | Вход | Обязателен | По умолчанию | Назначение |
