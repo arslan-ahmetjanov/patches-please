@@ -1,31 +1,41 @@
-/* Patches, Please: стили сайта документации.
-   Токены и правила взяты из docs/brand.md. Без JS и без внешних шрифтов:
-   сайт открывается офлайн и на GitHub Pages без сборки. */
+/* Стили сайта документации Patches, Please.
+   Файл состоит из двух частей: общий блок между маркерами `shared:brand`
+   скопирован из patches_please/templates/static/brand.css, ниже идут правила
+   самого сайта. Совпадение общего блока проверяет tests/test_brand.py, поэтому
+   интерфейс и сайт выглядят одним продуктом. */
+
+/* >>> shared:brand >>> */
+/* Токены и базовые элементы: палитра, шрифты, текст, ссылки, таблицы,
+   штамп, терминальный блок, кнопки и поля. Общий блок для приложения и сайта. */
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;600;700&display=swap");
 
 :root {
+  color-scheme: light;
+
+  /* Палитра: бумага, чернила, линии, два цвета штампа. */
   --paper: #faf7f0;
-  --paper-deep: #f2ece0;
   --ink: #14120f;
   --muted: #6e665a;
   --line: #d8d1c2;
-  --pass: #1f6b3d;
-  --fail: #b3261e;
-  --term-bg: #0c120c;
-  --term-text: #b9f6c1;
-  --term-accent: #7ae582;
-  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  --measure: 72ch;
-  --radius: 3px;
-}
+  --stamp-pass: #1f6b3d;
+  --stamp-fail: #b3261e;
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+  /* Терминальный блок: зелёное на чёрном живёт только здесь. */
+  --terminal-bg: #0c120c;
+  --terminal-fg: #b9f6c1;
+  --terminal-accent: #7ae582;
+
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Pixelify Sans", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --radius: 0.25rem;
+  --measure: 72ch;
 }
 
 html {
+  background: var(--paper);
   -webkit-text-size-adjust: 100%;
 }
 
@@ -33,49 +43,270 @@ body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 400 17px/1.65 var(--sans);
-  text-rendering: optimizeLegibility;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-/* Шапка */
+/* Пиксельный шрифт — только h1, логотип и штамп: тело и таблицы читаются
+   обычным шрифтом. */
+h1,
+h2 {
+  font-weight: 600;
+  line-height: 1.2;
+  text-wrap: balance;
+}
 
+h1 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.25rem + 0.9vw, 1.95rem);
+  letter-spacing: 0.01em;
+}
+
+h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.2rem;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--muted);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+}
+
+a:hover {
+  text-decoration-color: currentColor;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  overflow-wrap: break-word;
+}
+
+/* Логотип и название: пиксельный штамп плюс текст, на всех страницах. */
+.brand {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.brand img {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+th,
+td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+}
+
+caption {
+  padding-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+td.num,
+th.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Таблица шире экрана не рвёт страницу: прокручивается сама. */
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Важность находки: цвет дополняет слово, а не заменяет его. */
+.sev {
+  white-space: nowrap;
+}
+
+.sev-critical,
+.sev-high {
+  color: var(--stamp-fail);
+  font-weight: 600;
+}
+
+.sev-low,
+.sev-info {
+  color: var(--muted);
+}
+
+/* Штамп вердикта: рамка 2px, поворот −8°, крупно в углу шапки. */
+.stamp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0.45rem 1rem 0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 0.15rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.stamp-date {
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+}
+
+.stamp-pass {
+  color: var(--stamp-pass);
+}
+
+.stamp-fail {
+  color: var(--stamp-fail);
+}
+
+/* Терминальный блок: только код, логи и причина сбоя. */
+.terminal,
+pre {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+pre code {
+  font-size: 1em;
+  color: inherit;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Кнопки-действия не мельче 40px: попадать курсором и пальцем проще. */
+button:not(.link) {
+  min-height: 2.5rem;
+}
+
+button.link {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+}
+
+button.link:hover {
+  border-color: var(--ink);
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Скрыто визуально, но доступно скринридеру. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Штамп не поворачиваем там, где движение мешает чтению. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    transform: none;
+  }
+}
+/* <<< shared:brand <<< */
+/* --- Сайт документации: шапка с навигацией и типовые блоки страниц --- */
+
+/* Шапка сайта повторяет шапку приложения: бумага, линия, логотип, muted-ссылки. */
 .site-header {
-  border-bottom: 2px solid var(--ink);
-  background: var(--paper-deep);
+  border-bottom: 1px solid var(--line);
 }
 
 .site-header__inner {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 24px;
+  gap: 0.5rem 2rem;
   align-items: center;
   justify-content: space-between;
-  max-width: 78rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 12px 24px;
-}
-
-.brand {
-  display: inline-flex;
-  gap: 10px;
-  align-items: center;
-  color: var(--ink);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 1.0625rem;
-  letter-spacing: 0.01em;
-}
-
-.brand img {
-  display: block;
-  width: 32px;
-  height: 32px;
+  padding: 0.75rem 2rem;
 }
 
 .site-nav ul {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
+  gap: 0.25rem 1.25rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -84,59 +315,37 @@ body {
 .site-nav a {
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.9375rem;
-  padding: 4px 0;
-  border-bottom: 2px solid transparent;
+  font-size: 0.95rem;
 }
 
 .site-nav a:hover,
 .site-nav a:focus-visible {
   color: var(--ink);
-  border-bottom-color: var(--ink);
+  text-decoration: underline;
 }
 
 .site-nav a[aria-current="page"] {
   color: var(--ink);
-  border-bottom-color: var(--fail);
+  text-decoration: underline;
+  text-decoration-color: var(--stamp-fail);
+  text-decoration-thickness: 2px;
 }
 
-/* Основная колонка */
-
 main {
-  max-width: 78rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 32px 24px 56px;
+  padding: 2rem;
 }
 
 .lead {
   max-width: var(--measure);
-  font-size: 1.1875rem;
+  margin: 0 0 1rem;
   color: var(--muted);
-}
-
-h1,
-h2,
-h3,
-h4 {
-  line-height: 1.25;
-  letter-spacing: -0.01em;
-}
-
-h1 {
-  margin: 0 0 16px;
-  font-size: clamp(1.875rem, 1.4rem + 1.6vw, 2.5rem);
+  font-size: 1.125rem;
 }
 
 h2 {
-  margin: 48px 0 12px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--line);
-  font-size: 1.5rem;
-}
-
-h3 {
-  margin: 32px 0 8px;
-  font-size: 1.1875rem;
+  margin-top: 2.5rem;
 }
 
 p,
@@ -148,316 +357,27 @@ figure {
   max-width: var(--measure);
 }
 
-a {
-  color: var(--ink);
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-}
-
-a:hover {
-  text-decoration-thickness: 2px;
-}
-
-:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 2px;
-}
-
 ul,
 ol {
   padding-left: 1.25em;
 }
 
 li + li {
-  margin-top: 6px;
-}
-
-strong {
-  font-weight: 600;
-}
-
-/* Код и команды */
-
-code {
-  font-family: var(--mono);
-  font-size: 0.875em;
-  padding: 1px 5px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: #fff;
-  overflow-wrap: anywhere;
+  margin-top: 0.4rem;
 }
 
 pre {
-  overflow-x: auto;
-  margin: 16px 0;
-  padding: 16px 18px;
-  border-radius: var(--radius);
-  background: var(--term-bg);
-  color: var(--term-text);
-  font: 400 0.875rem/1.55 var(--mono);
+  margin: 1rem 0;
 }
 
-pre code {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font-size: 1rem;
-  overflow-wrap: normal;
-}
-
-pre .prompt {
-  color: var(--term-accent);
-  user-select: none;
-}
-
-/* Таблицы */
-
-/* Обёртка нужна для узких экранов: таблица с тремя колонками не сжимается ниже
-   своего минимума, поэтому прокручивается сама, а страница остаётся на месте. */
-.table-wrap {
-  max-width: var(--measure);
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  margin: 16px 0;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
-}
-
-caption {
-  margin-bottom: 6px;
-  color: var(--muted);
-  font-size: 0.875rem;
-  text-align: left;
-}
-
-th,
-td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  border-bottom: 2px solid var(--ink);
-  font-weight: 600;
-}
-
-tbody tr:hover {
-  background: #fff;
-}
-
-/* Блоки-заметки */
-
-.note {
-  max-width: var(--measure);
-  margin: 20px 0;
-  padding: 12px 16px;
-  border-left: 4px solid var(--line);
-  background: #fff;
-}
-
-.note > :first-child {
-  margin-top: 0;
-}
-
-.note > :last-child {
-  margin-bottom: 0;
-}
-
-.note--warn {
-  border-left-color: var(--fail);
-}
-
-.note--ok {
-  border-left-color: var(--pass);
-}
-
-.note__title {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-/* Штамп: вердикт и дата, поворот как в интерфейсе */
-
-.stamp {
-  display: inline-block;
-  padding: 6px 14px;
-  border: 2px solid currentColor;
-  border-radius: 2px;
-  transform: rotate(-8deg);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  vertical-align: middle;
-}
-
-.verdicts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px 40px;
-  max-width: var(--measure);
-  margin: 24px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.verdicts li {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  align-items: center;
-  margin: 0;
-  color: var(--muted);
-}
-
-.stamp--pass {
-  color: var(--pass);
-}
-
-.stamp--fail {
-  color: var(--fail);
-}
-
-/* Конвейер прогона: нумерованный список без JS */
-
-.pipeline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: stretch;
-  max-width: 78rem;
-  margin: 20px 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.pipeline li {
-  flex: 1 1 150px;
-  margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-size: 0.9375rem;
-  counter-increment: step;
-}
-
-.pipeline li::before {
-  content: counter(step, decimal-leading-zero);
-  display: block;
-  margin-bottom: 4px;
-  color: var(--fail);
-  font: 600 0.75rem/1 var(--mono);
-  letter-spacing: 0.08em;
-}
-
-/* Скриншоты */
-
-.shots {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-  max-width: 78rem;
-  margin: 24px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.shots li {
-  margin: 0;
-}
-
-.shots img {
-  display: block;
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  object-position: top center;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-.shots figcaption {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-figure {
-  margin: 24px 0;
-}
-
-figure img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-/* Очень длинный снимок (полная страница отчёта) показываем сверху и даём
-   ссылку на файл целиком: иначе он занимает несколько экранов подряд. */
-.figure-tall img {
-  max-height: 620px;
-  object-fit: cover;
-  object-position: top center;
-}
-
-figcaption {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-/* Шаги установки */
-
-.steps {
-  padding-left: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.steps > li {
-  position: relative;
-  margin: 0 0 20px;
-  padding-left: 44px;
-  counter-increment: step;
-}
-
-.steps > li::before {
-  content: counter(step);
-  position: absolute;
-  left: 0;
-  top: 1px;
-  width: 30px;
-  height: 30px;
-  border: 2px solid var(--ink);
-  border-radius: 50%;
-  font: 600 0.875rem/26px var(--mono);
-  text-align: center;
-}
-
-.steps > li + li {
-  margin-top: 0;
-}
-
-/* Кнопки */
-
+/* Кнопки сайта: те же размеры и цвета, что у кнопок приложения. */
 .button {
-  display: inline-block;
-  padding: 10px 20px;
-  border: 2px solid var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink);
   border-radius: var(--radius);
   background: var(--ink);
   color: var(--paper);
@@ -469,6 +389,7 @@ figcaption {
 .button:focus-visible {
   background: var(--paper);
   color: var(--ink);
+  text-decoration: none;
 }
 
 .button--ghost {
@@ -485,106 +406,258 @@ figcaption {
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 24px 0;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
 }
 
-/* Ссылки вперёд и назад */
+/* Вердикты: два штампа рядом с подписью. */
+.verdicts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+  max-width: var(--measure);
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
 
+.verdicts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.9rem;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Заметки: тот же прямоугольник, что у подсказок и предупреждений приложения. */
+.note {
+  max-width: var(--measure);
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--paper);
+}
+
+.note > :first-child {
+  margin-top: 0;
+}
+
+.note > :last-child {
+  margin-bottom: 0;
+}
+
+.note--warn {
+  border-left-color: var(--stamp-fail);
+}
+
+.note--ok {
+  border-left-color: var(--stamp-pass);
+}
+
+.note__title {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* Путь коммита: нумерованные шаги без рисунков. */
+.pipeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: stretch;
+  max-width: 72rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.pipeline li {
+  flex: 1 1 150px;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.95rem;
+  counter-increment: step;
+}
+
+.pipeline li::before {
+  content: counter(step, decimal-leading-zero);
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--stamp-fail);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Снимки экрана */
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.25rem;
+  max-width: 72rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shots li {
+  margin: 0;
+}
+
+.shots img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+figure {
+  margin: 1.5rem 0;
+}
+
+figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* Очень длинный снимок показываем сверху и даём ссылку на файл целиком. */
+.figure-tall img {
+  max-height: 620px;
+  object-fit: cover;
+  object-position: top center;
+}
+
+figcaption {
+  margin-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Шаги установки: круг с номером, как в инструкции на бумаге. */
+.steps {
+  padding-left: 0;
+  list-style: none;
+  counter-reset: step;
+  max-width: var(--measure);
+}
+
+.steps > li {
+  position: relative;
+  margin: 0 0 1.5rem;
+  padding-left: 2.75rem;
+  counter-increment: step;
+}
+
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 26px;
+  text-align: center;
+}
+
+.steps > li + li {
+  margin-top: 0;
+}
+
+.steps p {
+  max-width: var(--measure);
+}
+
+/* Переход между страницами */
 .pager {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 0.75rem;
   justify-content: space-between;
-  margin-top: 56px;
-  padding-top: 20px;
-  border-top: 2px solid var(--ink);
-  font-size: 0.9375rem;
+  margin-top: 3rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.95rem;
 }
 
 .pager a {
   text-decoration: none;
-  border-bottom: 2px solid var(--line);
 }
 
 .pager a:hover,
 .pager a:focus-visible {
-  border-bottom-color: var(--ink);
+  text-decoration: underline;
 }
 
 /* Подвал */
-
 .site-footer {
   border-top: 1px solid var(--line);
-  background: var(--paper-deep);
 }
 
 .site-footer p {
-  max-width: 78rem;
+  max-width: 72rem;
   margin: 0 auto;
-  padding: 18px 24px;
+  padding: 1rem 2rem;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: 0.9rem;
 }
 
 /* Служебное */
-
 .skip {
   position: absolute;
   left: -9999px;
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   background: var(--ink);
   color: var(--paper);
 }
 
 .skip:focus {
-  left: 12px;
-  top: 12px;
+  left: 0.75rem;
+  top: 0.75rem;
   z-index: 10;
 }
 
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-@media (max-width: 640px) {
-  body {
-    font-size: 16px;
+@media (max-width: 48rem) {
+  .site-header__inner {
+    padding: 0.75rem 1rem;
   }
 
   main {
-    padding: 24px 16px 40px;
-  }
-
-  .site-header__inner {
-    padding: 10px 16px;
-  }
-
-  .site-nav ul {
-    gap: 2px 14px;
+    padding: 1rem;
   }
 
   .steps > li {
-    padding-left: 36px;
+    padding-left: 2.25rem;
   }
 
   .steps > li::before {
     width: 26px;
     height: 26px;
-    font-size: 0.8125rem;
+    font-size: 0.8rem;
     line-height: 22px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stamp {
-    transform: none;
   }
 }
 
