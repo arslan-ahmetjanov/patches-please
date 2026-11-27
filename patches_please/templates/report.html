@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>Отчёт по досмотру {{ report.scan.commit_sha[:12] }} · Patches, Please</title>
+  <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlBhdGNoZXMsIFBsZWFzZSI+CiAgPHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiBmaWxsPSIjRkFGN0YwIi8+CiAgPGcgZmlsbD0iIzE0MTIwRiIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIj4KICAgIDxwYXRoIGQ9Ik0xIDFoMTR2Mkgxek0xIDEzaDE0djJIMXpNMSAxaDJ2MTRIMXpNMTMgMWgydjE0aC0yeiIvPgogICAgPHBhdGggZD0iTTUgNGg1djFINXpNNSA1aDF2MUg1ek05IDVoMXYxSDl6TTUgNmgxdjFINXpNOSA2aDF2MUg5ek01IDdoNXYxSDV6TTUgOGgxdjFINXpNNSA5aDF2MUg1ek01IDEwaDF2MUg1ek01IDExaDF2MUg1eiIvPgogIDwvZz4KPC9zdmc+Cg==" type="image/svg+xml">
   <style>{% include "static/brand.css" %}</style>
 </head>
 <body>
@@ -12,7 +14,7 @@
 {% set status_labels = {"queued": "в очереди", "running": "выполняется", "done": "завершён", "error": "ошибка"} %}
 {% set verdict_label = "Задержан" if report.scan.verdict == "fail" else "Пропущен" %}
   <header>
-    <strong class="brand">Patches, Please</strong>
+    <strong class="brand"><img src="/static/logo.svg" alt="" width="28" height="28">Patches, Please</strong>
     <span class="muted">отчёт по досмотру</span>
     <span class="spacer"></span>
     <div class="stamp {% if report.scan.verdict == 'fail' %}stamp-fail{% else %}stamp-pass{% endif %}">
@@ -50,57 +52,63 @@
 
     <section>
       <h2>Метрики</h2>
-      <table>
-        <tbody>
-          <tr><th>Длительность</th><td class="num">{{ "%.1f"|format(report.metrics.duration_sec) }} с</td></tr>
-          <tr><th>Новые находки</th><td class="num">{{ report.metrics.new }}</td></tr>
-          <tr><th>Исправленные находки</th><td class="num">{{ report.metrics.fixed }}</td></tr>
-          <tr>
-            <th>Доля исключённых</th>
-            <td class="num">{{ "%.1f"|format(report.metrics.excluded_ratio * 100) }} %</td>
-          </tr>
-        </tbody>
-      </table>
-      <table>
-        <thead>
-          <tr><th>Находки по важности</th><th>Количество</th></tr>
-        </thead>
-        <tbody>
-          {% for severity, count in report.metrics.findings_by_severity.items() %}
-          <tr>
-            <td>{{ severity_labels.get(severity, severity) }}</td>
-            <td class="num">{{ count }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr><th>Длительность</th><td class="num">{{ "%.1f"|format(report.metrics.duration_sec) }} с</td></tr>
+            <tr><th>Новые находки</th><td class="num">{{ report.metrics.new }}</td></tr>
+            <tr><th>Исправленные находки</th><td class="num">{{ report.metrics.fixed }}</td></tr>
+            <tr>
+              <th>Доля исключённых</th>
+              <td class="num">{{ "%.1f"|format(report.metrics.excluded_ratio * 100) }} %</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Находки по важности</th><th>Количество</th></tr>
+          </thead>
+          <tbody>
+            {% for severity, count in report.metrics.findings_by_severity.items() %}
+            <tr>
+              <td>{{ severity_labels.get(severity, severity) }}</td>
+              <td class="num">{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section>
       <h2>Проверки</h2>
       {% if report.checks %}
-      <table>
-        <thead>
-          <tr>
-            <th>Сканер</th>
-            <th>Статус</th>
-            <th>Длительность</th>
-            <th>Версия</th>
-            <th>Причина</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for check in report.checks %}
-          <tr{% if check.degraded %} class="degraded"{% endif %}>
-            <td>{{ check.scanner }}</td>
-            <td>{% if check.degraded %}<span class="status-degraded">неполная ({{ check.status }})</span>{% else %}<span class="status-ok">{{ check.status }}</span>{% endif %}</td>
-            <td class="num">{{ check.duration_ms }} мс</td>
-            <td>{{ check.tool_version or "нет данных" }}</td>
-            <td>{{ check.error or "нет данных" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Сканер</th>
+              <th>Статус</th>
+              <th>Длительность</th>
+              <th>Версия</th>
+              <th>Причина</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for check in report.checks %}
+            <tr{% if check.degraded %} class="degraded"{% endif %}>
+              <td>{{ check.scanner }}</td>
+              <td>{% if check.degraded %}<span class="status-degraded">неполная ({{ check.status }})</span>{% else %}<span class="status-ok">{{ check.status }}</span>{% endif %}</td>
+              <td class="num">{{ check.duration_ms }} мс</td>
+              <td>{{ check.tool_version or "нет данных" }}</td>
+              <td>{{ check.error or "нет данных" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p class="empty">Запусков сканеров нет.</p>
       {% endif %}
@@ -113,39 +121,41 @@
         исключённых: {{ report.totals.excluded }}, блокирующих: {{ report.totals.blocking }}.
       </p>
       {% if report.findings %}
-      <table>
-        <thead>
-          <tr>
-            <th>Важность</th>
-            <th>Правило</th>
-            <th>Файл</th>
-            <th>Строка</th>
-            <th>Тип</th>
-            <th>Сканер</th>
-            <th>Состояние</th>
-            <th>Исключена</th>
-            <th>Сообщение</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for finding in report.findings %}
-          <tr{% if finding.blocking %} class="blocking"{% endif %}>
-            <td>{{ severity_labels.get(finding.severity, finding.severity) }}</td>
-            <td>
-              <code>{{ finding.rule_id }}</code>
-              {% if finding.blocking %}<span class="badge">блокирует</span>{% endif %}
-            </td>
-            <td><code>{{ finding.path }}</code></td>
-            <td class="num">{{ finding.line }}</td>
-            <td>{{ finding.finding_type }}</td>
-            <td>{{ finding.scanner }}</td>
-            <td>{{ state_labels.get(finding.state, finding.state) }}</td>
-            <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
-            <td>{{ finding.message }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="findings">
+          <thead>
+            <tr>
+              <th>Важность</th>
+              <th>Правило</th>
+              <th>Файл</th>
+              <th class="num">Строка</th>
+              <th>Тип</th>
+              <th>Сканер</th>
+              <th>Состояние</th>
+              <th>Исключена</th>
+              <th>Сообщение</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for finding in report.findings %}
+            <tr{% if finding.blocking %} class="blocking"{% endif %}>
+              <td class="sev sev-{{ finding.severity }}">{{ severity_labels.get(finding.severity, finding.severity) }}</td>
+              <td>
+                <code>{{ finding.rule_id }}</code>
+                {% if finding.blocking %}<span class="badge">блокирует</span>{% endif %}
+              </td>
+              <td><code>{{ finding.path }}</code></td>
+              <td class="num">{{ finding.line }}</td>
+              <td>{{ finding.finding_type }}</td>
+              <td>{{ finding.scanner }}</td>
+              <td>{{ state_labels.get(finding.state, finding.state) }}</td>
+              <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
+              <td class="msg">{{ finding.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p class="empty">Находок нет.</p>
       {% endif %}

@@ -356,7 +356,9 @@ def test_fr_022_login_page_shows_form(client: AppClient) -> None:
     body = response.text
     assert 'name="email"' in body
     assert 'name="password"' in body
-    assert "Вход в Patches, Please" in body
+    # Заголовок короткий: название продукта стоит над ним логотипом в шапке.
+    assert "<h1>Вход</h1>" in body
+    assert "Patches, Please" in body
     assert "Пароль" in body
 
 

@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>Досмотр {{ scan.commit_sha[:12] }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
   <header>
-    <strong class="brand">Patches, Please</strong>
+    <strong class="brand"><img src="/static/logo.svg" alt="" width="28" height="28">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     <span class="spacer"></span>
     <span>{{ user.email }}</span>
@@ -105,36 +107,38 @@
       <p class="muted">Показано {{ view.findings|length }} из {{ view.findings_total }}.</p>
       {% endif %}
       {% if view.findings %}
-      <table>
-        <thead>
-          <tr>
-            <th>Важность</th>
-            <th>Правило</th>
-            <th>Файл</th>
-            <th class="num">Строка</th>
-            <th>Тип</th>
-            <th>Сканер</th>
-            <th>Состояние</th>
-            <th>Исключена</th>
-            <th>Сообщение</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for finding in view.findings %}
-          <tr>
-            <td>{{ severity_labels.get(finding.severity, finding.severity) }}</td>
-            <td><code>{{ finding.rule_id }}</code></td>
-            <td><code>{{ finding.path }}</code></td>
-            <td class="num">{{ finding.line }}</td>
-            <td>{{ finding.finding_type }}</td>
-            <td>{{ finding.scanner }}</td>
-            <td>{{ state_labels.get(finding.state, finding.state) }}</td>
-            <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
-            <td>{{ finding.message }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table class="findings">
+          <thead>
+            <tr>
+              <th>Важность</th>
+              <th>Правило</th>
+              <th>Файл</th>
+              <th class="num">Строка</th>
+              <th>Тип</th>
+              <th>Сканер</th>
+              <th>Состояние</th>
+              <th>Исключена</th>
+              <th>Сообщение</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for finding in view.findings %}
+            <tr>
+              <td class="sev sev-{{ finding.severity }}">{{ severity_labels.get(finding.severity, finding.severity) }}</td>
+              <td><code>{{ finding.rule_id }}</code></td>
+              <td><code>{{ finding.path }}</code></td>
+              <td class="num">{{ finding.line }}</td>
+              <td>{{ finding.finding_type }}</td>
+              <td>{{ finding.scanner }}</td>
+              <td>{{ state_labels.get(finding.state, finding.state) }}</td>
+              <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
+              <td class="msg">{{ finding.message }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% elif view.findings_total %}
       <p class="empty">По фильтру ничего не найдено.</p>
       {% else %}

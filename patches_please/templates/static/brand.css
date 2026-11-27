@@ -1,7 +1,13 @@
 /* Фирменный стиль Patches, Please (T-037, CON-004).
-   Один файл на все страницы и HTML-отчёт. Токены и шрифты — из docs/brand.md.
-   Пиксельный шрифт только в заголовках, логотипе и штампе: тело текста,
-   таблицы и формы набраны IBM Plex Sans. */
+   Один файл на все страницы и HTML-отчёт. Токены и правила — из docs/brand.md.
+
+   Блок между маркерами `shared:brand` побайтно совпадает с сайтом
+   документации (`site/assets/style.css`): так интерфейс и сайт выглядят
+   одним продуктом. Расхождение ловит tests/test_brand.py. */
+
+/* >>> shared:brand >>> */
+/* Токены и базовые элементы: палитра, шрифты, текст, ссылки, таблицы,
+   штамп, терминальный блок, кнопки и поля. Общий блок для приложения и сайта. */
 
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;600;700&display=swap");
 
@@ -24,6 +30,9 @@
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Pixelify Sans", "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --radius: 0.25rem;
+  --measure: 72ch;
 }
 
 html {
@@ -36,7 +45,8 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
-  line-height: 1.5;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 /* Пиксельный шрифт — только h1, логотип и штамп: тело и таблицы читаются
@@ -45,16 +55,18 @@ h1,
 h2 {
   font-weight: 600;
   line-height: 1.2;
+  text-wrap: balance;
 }
 
 h1 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.35rem;
   font-family: var(--font-display);
-  font-size: 1.55rem;
+  font-size: clamp(1.5rem, 1.25rem + 0.9vw, 1.95rem);
+  letter-spacing: 0.01em;
 }
 
 h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
   font-size: 1.2rem;
 }
 
@@ -69,12 +81,223 @@ a:hover {
   text-decoration-color: currentColor;
 }
 
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  overflow-wrap: break-word;
+}
+
+/* Логотип и название: пиксельный штамп плюс текст, на всех страницах. */
+.brand {
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.brand img {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+th,
+td {
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  font-weight: 600;
+}
+
+caption {
+  padding-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+td.num,
+th.num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* Таблица шире экрана не рвёт страницу: прокручивается сама. */
+.table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+/* Важность находки: цвет дополняет слово, а не заменяет его. */
+.sev {
+  white-space: nowrap;
+}
+
+.sev-critical,
+.sev-high {
+  color: var(--stamp-fail);
+  font-weight: 600;
+}
+
+.sev-low,
+.sev-info {
+  color: var(--muted);
+}
+
+/* Штамп вердикта: рамка 2px, поворот −8°, крупно в углу шапки. */
+.stamp {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  padding: 0.45rem 1rem 0.5rem;
+  border: 2px solid currentColor;
+  border-radius: 0.15rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  transform: rotate(-8deg);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.stamp-date {
+  font-size: 0.6em;
+  letter-spacing: 0.08em;
+}
+
+.stamp-pass {
+  color: var(--stamp-pass);
+}
+
+.stamp-fail {
+  color: var(--stamp-fail);
+}
+
+/* Терминальный блок: только код, логи и причина сбоя. */
+.terminal,
+pre {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  border-radius: var(--radius);
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+pre code {
+  font-size: 1em;
+  color: inherit;
+}
+
+button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Кнопки-действия не мельче 40px: попадать курсором и пальцем проще. */
+button:not(.link) {
+  min-height: 2.5rem;
+}
+
+button.link {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+}
+
+button.link:hover {
+  border-color: var(--ink);
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  padding: 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Скрыто визуально, но доступно скринридеру. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Штамп не поворачиваем там, где движение мешает чтению. */
+@media (prefers-reduced-motion: reduce) {
+  .stamp {
+    transform: none;
+  }
+}
+/* <<< shared:brand <<< */
+
+/* --- Приложение: страницы интерфейса и HTML-отчёт --- */
+
+/* Шапка одна на всех страницах: бумага, линия, логотип-штамп. Контент
+   выровнен по колонке страницы (72rem), как и шапка сайта. */
 header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 2rem;
+  padding-inline: max(2rem, calc((100% - 72rem) / 2 + 2rem));
   border-bottom: 1px solid var(--line);
 }
 
@@ -86,11 +309,14 @@ header form {
   margin: 0;
 }
 
-.brand {
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
+header a {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+header a:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 main {
@@ -101,10 +327,10 @@ main {
   padding: 2rem;
 }
 
-.muted {
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.5;
+/* Колонка сетки не растягивается шире страницы из-за широкой таблицы:
+   таблица прокручивается внутри .table-wrap, а не тащит за собой вёрстку. */
+main > * {
+  min-width: 0;
 }
 
 p.muted {
@@ -127,36 +353,6 @@ dd {
   margin: 0;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-  line-height: 1.45;
-}
-
-th,
-td {
-  padding: 0.5rem 0.7rem;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  font-weight: 600;
-}
-
-td.num,
-th.num {
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-}
-
-code {
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-}
-
 h1 code {
   font-size: 0.72em;
 }
@@ -165,7 +361,7 @@ h1 code {
   margin: 0;
   padding: 1rem;
   border: 1px dashed var(--line);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
   color: var(--muted);
 }
 
@@ -173,7 +369,7 @@ h1 code {
   margin: 0 0 1rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--stamp-fail);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
   color: var(--stamp-fail);
   font-size: 0.9rem;
 }
@@ -183,7 +379,7 @@ h1 code {
   padding: 0.75rem 1rem;
   border: 1px solid var(--stamp-fail);
   border-left-width: 4px;
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
   font-weight: 600;
 }
 
@@ -212,35 +408,22 @@ tr.blocking td {
   font-weight: 600;
 }
 
-/* Штамп вердикта: рамка 2px, поворот −8°, крупно в углу шапки. */
-.stamp {
-  display: inline-flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  align-items: center;
-  padding: 0.45rem 1rem 0.5rem;
-  border: 2px solid currentColor;
-  border-radius: 0.15rem;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  text-transform: uppercase;
-  transform: rotate(-8deg);
-  white-space: nowrap;
+/* Находки: сообщение занимает остаток ширины, но не растягивает строку
+   на пол-экрана и не рвёт страницу на узком. Правило и файл не сжимаются
+   до состояния «requir ements.txt». */
+.findings td.msg {
+  min-width: 14rem;
+  max-width: 32rem;
 }
 
-.stamp-date {
-  font-size: 0.6em;
-  letter-spacing: 0.08em;
+.findings th:nth-child(2),
+.findings td:nth-child(2) {
+  min-width: 11rem;
 }
 
-.stamp-pass {
-  color: var(--stamp-pass);
-}
-
-.stamp-fail {
-  color: var(--stamp-fail);
+.findings th:nth-child(3),
+.findings td:nth-child(3) {
+  min-width: 8rem;
 }
 
 .page-head {
@@ -252,20 +435,6 @@ tr.blocking td {
 
 .page-head p.muted {
   margin: 0 0 0.25rem;
-}
-
-/* Терминальный блок: только код, логи и причина сбоя. */
-.terminal {
-  margin: 0;
-  padding: 0.75rem 1rem;
-  overflow-x: auto;
-  border-radius: 0.25rem;
-  background: var(--terminal-bg);
-  color: var(--terminal-fg);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
 }
 
 .status-ok {
@@ -295,7 +464,6 @@ tr.blocking td {
 .filters button {
   margin: 0;
   padding: 0.3rem 0.5rem;
-  font: inherit;
 }
 
 .filters a {
@@ -304,52 +472,6 @@ tr.blocking td {
 
 label {
   font-size: 0.9rem;
-}
-
-button {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--ink);
-  border-radius: 0.25rem;
-  background: var(--ink);
-  color: var(--paper);
-  font: inherit;
-  cursor: pointer;
-}
-
-button.link {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: inherit;
-}
-
-button.link:hover {
-  border-color: var(--ink);
-}
-
-input,
-select,
-textarea {
-  box-sizing: border-box;
-  padding: 0.5rem;
-  border: 1px solid var(--muted);
-  border-radius: 0.25rem;
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-}
-
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-button:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--ink);
-  outline-offset: 1px;
-}
-
-textarea {
-  resize: vertical;
 }
 
 .hint {
@@ -388,7 +510,7 @@ fieldset {
   margin: 0 0 0.5rem;
   padding: 0.5rem 0.75rem 0.25rem;
   border: 1px solid var(--line);
-  border-radius: 0.25rem;
+  border-radius: var(--radius);
 }
 
 legend {
@@ -432,6 +554,11 @@ body.page-login h1 {
   font-size: 1.35rem;
 }
 
+body.page-login .brand {
+  display: flex;
+  margin-bottom: 1.25rem;
+}
+
 body.page-login label {
   display: block;
   margin-bottom: 0.25rem;
@@ -446,20 +573,11 @@ body.page-login button {
   width: 100%;
 }
 
-body.page-projects main {
-  max-width: 60rem;
-}
-
-/* Кнопки-действия не мельче 40px: попадать курсором и пальцем проще. */
-button:not(.link) {
-  min-height: 2.5rem;
-}
-
 /* Узкий экран и сильное увеличение: шапка и карточка досмотра переносятся,
    определения идут в одну колонку. Штамп остаётся повёрнутым на −8°. */
 @media (max-width: 48rem) {
   header {
-    padding: 0.75rem 1rem;
+    padding-inline: 1rem;
   }
 
   main {

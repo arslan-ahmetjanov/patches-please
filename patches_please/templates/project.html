@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>{{ project.name }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
   <header>
-    <strong class="brand">Patches, Please</strong>
+    <strong class="brand"><img src="/static/logo.svg" alt="" width="28" height="28">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     {% if is_owner %}<a href="/projects/{{ project.slug }}/settings">Настройки</a>{% endif %}
     <span class="spacer"></span>
@@ -32,95 +34,101 @@
     {% else %}
     <section>
       <h2>Последние досмотры</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Коммит</th>
-            <th>Дата</th>
-            <th>Вердикт</th>
-            {% for severity in severity_keys %}
-            <th class="num">{{ severity_labels[severity] }}</th>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Коммит</th>
+              <th>Дата</th>
+              <th>Вердикт</th>
+              {% for severity in severity_keys %}
+              <th class="num">{{ severity_labels[severity] }}</th>
+              {% endfor %}
+              <th class="num">Всего</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for run in dashboard.recent_runs %}
+            <tr>
+              <td>
+                <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
+              </td>
+              <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
+              <td>
+                {% if run.status == "done" %}
+                <span class="verdict {% if run.verdict == 'fail' %}fail{% elif run.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "нет данных") }}</span>
+                {% else %}
+                {{ status_labels.get(run.status, run.status) }}
+                {% endif %}
+              </td>
+              {% for severity in severity_keys %}
+              <td class="num">{% if run.counts %}{{ run.counts[severity] }}{% else %}нет данных{% endif %}</td>
+              {% endfor %}
+              <td class="num">{% if run.total is not none %}{{ run.total }}{% else %}нет данных{% endif %}</td>
+            </tr>
             {% endfor %}
-            <th class="num">Всего</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for run in dashboard.recent_runs %}
-          <tr>
-            <td>
-              <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
-            </td>
-            <td>{{ run.date.strftime("%d.%m.%Y %H:%M") }}</td>
-            <td>
-              {% if run.status == "done" %}
-              <span class="verdict {% if run.verdict == 'fail' %}fail{% elif run.verdict == 'pass' %}pass{% endif %}">{{ verdict_labels.get(run.verdict, run.verdict or "нет данных") }}</span>
-              {% else %}
-              {{ status_labels.get(run.status, run.status) }}
-              {% endif %}
-            </td>
-            {% for severity in severity_keys %}
-            <td class="num">{% if run.counts %}{{ run.counts[severity] }}{% else %}нет данных{% endif %}</td>
-            {% endfor %}
-            <td class="num">{% if run.total is not none %}{{ run.total }}{% else %}нет данных{% endif %}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     {% if dashboard.trend_runs %}
     <section>
       <h2>Тренд находок по важности</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Досмотр</th>
-            {% for severity in severity_keys %}
-            <th class="num">{{ severity_labels[severity] }}</th>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Досмотр</th>
+              {% for severity in severity_keys %}
+              <th class="num">{{ severity_labels[severity] }}</th>
+              {% endfor %}
+              <th class="num">Всего</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for run in dashboard.trend_runs %}
+            <tr>
+              <td>
+                <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
+                <span class="muted"> · {{ run.date.strftime("%d.%m.%Y %H:%M") }}</span>
+              </td>
+              {% for severity in severity_keys %}
+              <td class="num">{{ run.counts[severity] }}</td>
+              {% endfor %}
+              <td class="num">{{ run.total }}</td>
+            </tr>
             {% endfor %}
-            <th class="num">Всего</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for run in dashboard.trend_runs %}
-          <tr>
-            <td>
-              <a href="/projects/{{ project.slug }}/scans/{{ run.scan_id }}"><code title="{{ run.commit_sha }}">{{ run.commit_sha[:12] }}</code></a>
-              <span class="muted"> · {{ run.date.strftime("%d.%m.%Y %H:%M") }}</span>
-            </td>
-            {% for severity in severity_keys %}
-            <td class="num">{{ run.counts[severity] }}</td>
-            {% endfor %}
-            <td class="num">{{ run.total }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section>
       <h2>Топ-5 правил</h2>
       {% if dashboard.top_rules %}
-      <table>
-        <thead>
-          <tr>
-            <th>№</th>
-            <th>Правило</th>
-            <th>Сканер</th>
-            <th class="num">Находок</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for rule in dashboard.top_rules %}
-          <tr>
-            <td class="num">{{ loop.index }}</td>
-            <td><code>{{ rule.rule_id }}</code></td>
-            <td>{{ rule.scanner }}</td>
-            <td class="num">{{ rule.count }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="num">№</th>
+              <th>Правило</th>
+              <th>Сканер</th>
+              <th class="num">Находок</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rule in dashboard.top_rules %}
+            <tr>
+              <td class="num">{{ loop.index }}</td>
+              <td><code>{{ rule.rule_id }}</code></td>
+              <td>{{ rule.scanner }}</td>
+              <td class="num">{{ rule.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p class="muted">Находок в завершённых досмотрах нет.</p>
       {% endif %}

@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>Настройки {{ project.name }} · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body>
   <header>
-    <strong class="brand">Patches, Please</strong>
+    <strong class="brand"><img src="/static/logo.svg" alt="" width="28" height="28">Patches, Please</strong>
     <a href="/projects">Мои проекты</a>
     <a href="/projects/{{ project.slug }}">{{ project.name }}</a>
     <span class="spacer"></span>
@@ -61,39 +63,41 @@
       </form>
 
       {% if exception_views %}
-      <table>
-        <thead>
-          <tr>
-            <th>Правило</th>
-            <th>Путь</th>
-            <th>Причина</th>
-            <th>Автор</th>
-            <th>Срок (UTC)</th>
-            <th>Состояние</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in exception_views %}
-          <tr>
-            <td><code>{{ row.rule_id }}</code></td>
-            <td><code>{{ row.path_glob }}</code></td>
-            <td>{{ row.reason }}</td>
-            <td>{{ row.author_email }}</td>
-            <td>{{ row.expires_at.strftime("%d.%m.%Y %H:%M") }}</td>
-            <td>{{ exception_status_labels.get(row.status, row.status) }}</td>
-            <td>
-              {% if row.status != "revoked" %}
-              <form method="post" action="/projects/{{ project.slug }}/settings/exceptions/{{ row.id }}/revoke">
-                <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
-                <button type="submit" class="link">Отозвать</button>
-              </form>
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Правило</th>
+              <th>Путь</th>
+              <th>Причина</th>
+              <th>Автор</th>
+              <th>Срок (UTC)</th>
+              <th>Состояние</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in exception_views %}
+            <tr>
+              <td><code>{{ row.rule_id }}</code></td>
+              <td><code>{{ row.path_glob }}</code></td>
+              <td>{{ row.reason }}</td>
+              <td>{{ row.author_email }}</td>
+              <td>{{ row.expires_at.strftime("%d.%m.%Y %H:%M") }}</td>
+              <td>{{ exception_status_labels.get(row.status, row.status) }}</td>
+              <td>
+                {% if row.status != "revoked" %}
+                <form method="post" action="/projects/{{ project.slug }}/settings/exceptions/{{ row.id }}/revoke">
+                  <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+                  <button type="submit" class="link">Отозвать</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
       {% else %}
       <p class="empty">Исключений нет: все находки учитываются в вердикте.</p>
       {% endif %}

@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>Вход · Patches, Please</title>
   <link rel="stylesheet" href="/static/brand.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 </head>
 <body class="page-login">
   <main>
-    <h1>Вход в Patches, Please</h1>
+    <strong class="brand"><img src="/static/logo.svg" alt="" width="28" height="28">Patches, Please</strong>
+    <h1>Вход</h1>
     {% if error %}
     <p class="error" role="alert">{{ error }}</p>
     {% endif %}
