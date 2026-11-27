@@ -38,7 +38,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --radius: 0.25rem;
-  /* Строка текста: 66 знаков. Дальше глаз теряет начало следующей строки. */
+  /* Ширина текста внутри блоков, где она нужна (подсказки, поля). */
   --measure: 66ch;
 }
 
@@ -92,14 +92,6 @@ code {
   font-family: var(--font-mono);
   font-size: 0.9em;
   overflow-wrap: break-word;
-}
-
-/* Текстовая колонка уже страницы: на широком мониторе строка не растягивается
-   на весь экран. Таблицы, снимки и код живут по своим правилам. */
-p,
-li,
-dd {
-  max-width: var(--measure);
 }
 
 p {
@@ -309,9 +301,8 @@ textarea {
 /* --- Сайт документации: шапка с навигацией и типовые блоки страниц --- */
 
 :root {
-  /* Ширина страницы целиком: текст в ней занимает 66 знаков, остальное место
-     уходит снимкам и широким таблицам. */
-  --page: 60rem;
+  /* Ширина страницы: одна для всех блоков — текста, таблиц, команд и снимков. */
+  --page: 72rem;
 }
 
 /* Шапка сайта повторяет шапку приложения: бумага, линия, логотип, muted-ссылки. */
@@ -371,7 +362,6 @@ main {
 }
 
 .lead {
-  max-width: var(--measure);
   margin: 0 0 1rem;
   color: var(--muted);
   font-size: 1.125rem;
@@ -381,22 +371,8 @@ h2 {
   margin-top: 2.5rem;
 }
 
-p,
-ul,
-ol {
-  max-width: var(--measure);
-}
-
-/* Команды и снимки шире текста: строка кода не переносится, а снимок
-   разглядеть проще. Таблицы остаются в меру текста. */
-pre,
-figure {
-  max-width: 100%;
-}
-
-table {
-  max-width: var(--measure);
-}
+/* Все блоки страницы одной ширины: текст, списки, таблицы, команды и
+   снимки занимают всю колонку. */
 
 ul,
 ol {
@@ -458,7 +434,6 @@ pre {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem 2.5rem;
-  max-width: var(--measure);
   margin: 1.5rem 0;
   padding: 0;
   list-style: none;
@@ -475,7 +450,6 @@ pre {
 
 /* Заметки: тот же прямоугольник, что у подсказок и предупреждений приложения. */
 .note {
-  max-width: var(--measure);
   margin: 1.25rem 0;
   padding: 0.75rem 1rem;
   border: 1px solid var(--line);
@@ -600,7 +574,6 @@ figcaption {
   padding-left: 0;
   list-style: none;
   counter-reset: step;
-  max-width: var(--measure);
 }
 
 .steps h3 {
@@ -636,10 +609,6 @@ figcaption {
 
 .steps > li + li {
   margin-top: 0;
-}
-
-.steps p {
-  max-width: var(--measure);
 }
 
 /* Переход между страницами */
