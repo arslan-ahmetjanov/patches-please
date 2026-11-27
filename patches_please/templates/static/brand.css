@@ -604,3 +604,47 @@ body.page-login button {
     gap: 0.75rem;
   }
 }
+
+/* На узком экране таблица находок превращается в карточки: девять колонок
+   не помещаются, а горизонтальная прокрутка прячет половину строки. */
+@media (max-width: 48rem) {
+  .findings thead {
+    display: none;
+  }
+
+  .findings tbody,
+  .findings tr,
+  .findings td {
+    display: block;
+    width: auto;
+  }
+
+  .findings tr {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .findings td {
+    display: grid;
+    grid-template-columns: 8.5rem 1fr;
+    gap: 0.5rem;
+    padding: 0.1rem 0;
+    border: 0;
+    text-align: left;
+  }
+
+  .findings td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+
+  .findings td.msg,
+  .findings th:nth-child(2),
+  .findings td:nth-child(2),
+  .findings th:nth-child(3),
+  .findings td:nth-child(3) {
+    min-width: 0;
+    max-width: none;
+  }
+}

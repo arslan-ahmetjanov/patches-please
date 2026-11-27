@@ -139,18 +139,18 @@
           <tbody>
             {% for finding in report.findings %}
             <tr{% if finding.blocking %} class="blocking"{% endif %}>
-              <td class="sev sev-{{ finding.severity }}">{{ severity_labels.get(finding.severity, finding.severity) }}</td>
-              <td>
+              <td class="sev sev-{{ finding.severity }}" data-label="Важность">{{ severity_labels.get(finding.severity, finding.severity) }}</td>
+              <td data-label="Правило">
                 <code>{{ finding.rule_id }}</code>
                 {% if finding.blocking %}<span class="badge">блокирует</span>{% endif %}
               </td>
-              <td><code>{{ finding.path }}</code></td>
-              <td class="num">{{ finding.line }}</td>
-              <td>{{ finding.finding_type }}</td>
-              <td>{{ finding.scanner }}</td>
-              <td>{{ state_labels.get(finding.state, finding.state) }}</td>
-              <td>{% if finding.excluded %}да{% else %}нет{% endif %}</td>
-              <td class="msg">{{ finding.message }}</td>
+              <td data-label="Файл"><code>{{ finding.path }}</code></td>
+              <td class="num" data-label="Строка">{{ finding.line }}</td>
+              <td data-label="Тип">{{ finding.finding_type }}</td>
+              <td data-label="Сканер">{{ finding.scanner }}</td>
+              <td data-label="Состояние">{{ state_labels.get(finding.state, finding.state) }}</td>
+              <td data-label="Исключена">{% if finding.excluded %}да{% else %}нет{% endif %}</td>
+              <td class="msg" data-label="Сообщение">{{ finding.message }}</td>
             </tr>
             {% endfor %}
           </tbody>
