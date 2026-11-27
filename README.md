@@ -12,6 +12,8 @@
 ![pytest](https://img.shields.io/badge/pytest-8.x-0a9edc)
 ![mypy strict](https://img.shields.io/badge/mypy-strict-2a6db2)
 
+[![CI](https://github.com/arslan-ahmetjanov/patches-please/actions/workflows/ci.yml/badge.svg)](https://github.com/arslan-ahmetjanov/patches-please/actions/workflows/ci.yml)
+
 ## Что делает система
 
 Встраивается в пайплайн, запускает проверки безопасности (SAST, секреты, уязвимые зависимости и образы), приводит результаты к единой модели, применяет политику проекта и блокирует переход релиза на следующий этап при критических находках. Ведёт историю прогонов и показывает метрики.
