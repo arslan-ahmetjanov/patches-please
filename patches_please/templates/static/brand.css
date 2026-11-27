@@ -39,7 +39,7 @@
   --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   --radius: 0.25rem;
-  /* Строка текста: 66 знаков. Дальше глаз теряет начало следующей строки. */
+  /* Ширина текста внутри блоков, где она нужна (подсказки, поля). */
   --measure: 66ch;
 }
 
@@ -93,14 +93,6 @@ code {
   font-family: var(--font-mono);
   font-size: 0.9em;
   overflow-wrap: break-word;
-}
-
-/* Текстовая колонка уже страницы: на широком мониторе строка не растягивается
-   на весь экран. Таблицы, снимки и код живут по своим правилам. */
-p,
-li,
-dd {
-  max-width: var(--measure);
 }
 
 p {
