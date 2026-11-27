@@ -30,6 +30,15 @@ Redis 7.2 + RQ, Jinja2, Docker Compose; pytest, ruff, mypy strict, uv 0.13.x.
 V1 закрыт: задачи T-001…T-038 реализованы, демо-репозиторий опубликован,
 сценарий CON-003 пройден 27.11.2026 на реальном стенде.
 
+**Единая айдентика интерфейса и сайта** (27.11.2026). Общий блок между
+маркерами `shared:brand` лежит копией в
+`patches_please/templates/static/brand.css` и в `site/assets/style.css`:
+токены, шрифты (Pixelify Sans, IBM Plex Sans, JetBrains Mono с Google Fonts),
+текст, таблицы, штамп, терминальный блок, кнопки, поля и логотип в шапке.
+Совпадение проверяет `tests/test_brand.py`, правку переносим в оба файла.
+Шапка приложения получила логотип-штамп и favicon, выровнена по колонке
+страницы; на узком экране таблица находок превращается в карточки.
+
 **Сайт документации готов и опубликован** 27.11.2026:
 `https://arslan-ahmetjanov.github.io/patches-please/`. Исходники в `site/`:
 восемь страниц (обзор, установка, настройка, первый прогон, CI, сервер,
@@ -71,16 +80,19 @@ accessibility 100, best-practices 100 и SEO 100; ссылки, картинки
 
 Проверки на 27.11.2026, все зелёные:
 
-- `uv run pytest -q` → 492 теста, все прошли (стек поднят, PostgreSQL доступна);
-- `uv run ruff format --check .` → `135 files already formatted`;
+- `uv run pytest -q` → 495 тестов: 268 быстрых и 227 интеграционных, все прошли
+  (стек поднят, PostgreSQL доступна);
+- `uv run ruff format --check .` → `136 files already formatted`;
 - `uv run ruff check .` → `All checks passed!`;
+- `uv run mypy patches_please` → `Success: no issues found in 69 source files`;
 - `curl http://localhost:8081/health` → `{"status":"ok"}` (порт 8081 из `.env`);
 - сайт: Lighthouse на `https://arslan-ahmetjanov.github.io/patches-please/` →
   accessibility 100, best-practices 100, SEO 100; все восемь страниц и файлы
-  `assets/` отдают `200`.
+  `assets/` отдают `200`; то же по восьми страницам локально;
+- приложение: Lighthouse на `/login` → accessibility 100, best-practices 100;
+  горизонтальной прокрутки нет на 1280 и 390 px, в консоли ошибок нет.
 
-`mypy` и `alembic check` в этой сессии не перезапускались: правки только в
-`site/`, `docs/` и `.github/workflows/pages.yml`, код и модели не менялись.
+`alembic check` в этой сессии не перезапускался: схемы и модели не менялись.
 
 ## Что сделано после открытия репозиториев
 
@@ -125,10 +137,12 @@ accessibility 100, best-practices 100 и SEO 100; ссылки, картинки
   (`projects`, `project`, `scan`, `settings`, `report`), описание в
   `docs/demo.md`, раздел 11. Порядок подготовки к показу собран в
   `docs/checklist-defense.md`.
-- **Свежий прогон демо**: коммит демо-репозитория `5fe6ca9` проверен после
-  правок шаблонов, прогон `b4d9406c-090d-4cba-9d66-8efa0f286958` дал `pass`,
-  15 находок в состоянии `existing`. HTML-отчёт этого прогона собран уже с
-  новыми подписями; отчёты пяти старых прогонов остались с прежним текстом.
+- **Свежий прогон демо**: коммит демо-репозитория `c592da9` (раздел про
+  интерфейс в README) проверен после смены шапки, прогон
+  `7ef404d0-f1c8-4180-bb66-fb97ee7b811b` дал `pass`, 15 находок в состоянии
+  `existing`. Вход, проекты, проект, досмотр, настройки и отчёт пересняты в
+  `docs/screenshots/` (`login.png` добавился) и пережаты в WebP для сайта.
+  Отчёты старых прогонов остались с прежним текстом и прежней иконкой.
 
 ## Что осталось
 
