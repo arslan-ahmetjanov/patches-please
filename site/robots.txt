@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://arslan-ahmetjanov.github.io/patches-please/sitemap.xml
