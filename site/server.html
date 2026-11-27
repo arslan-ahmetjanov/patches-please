@@ -54,14 +54,14 @@
 
   <ol class="steps">
     <li>
+      <h3>Возьмите сервер и домен</h3>
       <p>
-        Возьмите сервер с Ubuntu 24.04 LTS, 2 ГБ ОЗУ и больше и заведите домен.
-        A-запись домена должна указывать на публичный адрес сервера до выпуска
-        сертификата.
+        Нужен Ubuntu 24.04 LTS, 2 ГБ ОЗУ и больше. A-запись домена должна
+        указывать на публичный адрес сервера до выпуска сертификата.
       </p>
     </li>
     <li>
-      <p>Создайте пользователя без root и перенесите на него ключ SSH:</p>
+      <h3>Создайте пользователя без root</h3>
 <pre><code>adduser deploy
 usermod -aG sudo deploy</code></pre>
       <p>С локальной машины:</p>
@@ -72,7 +72,7 @@ usermod -aG sudo deploy</code></pre>
       </p>
     </li>
     <li>
-      <p>Закройте всё, кроме SSH, HTTP и HTTPS:</p>
+      <h3>Закройте порты файрволом</h3>
 <pre><code>sudo ufw allow 22/tcp
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
@@ -85,8 +85,9 @@ sudo ufw status</code></pre>
       </p>
     </li>
     <li>
+      <h3>Поставьте Docker</h3>
       <p>
-        Установите Docker Engine и плагин Compose по официальной инструкции
+        Официальная инструкция:
         <a href="https://docs.docker.com/engine/install/ubuntu/">Docker для
         Ubuntu</a>. Скрипт установки из той же документации:
       </p>
@@ -104,15 +105,13 @@ docker compose version</code></pre>
       </p>
     </li>
     <li>
-      <p>Клонируйте репозиторий:</p>
+      <h3>Клонируйте репозиторий</h3>
 <pre><code>git clone https://github.com/arslan-ahmetjanov/patches-please.git
 cd patches-please</code></pre>
     </li>
     <li>
-      <p>
-        Создайте <code>.env</code>, поменяйте пароль базы и включите режим для
-        HTTPS:
-      </p>
+      <h3>Настройте <code>.env</code></h3>
+      <p>Смените пароль базы и включите режим для HTTPS:</p>
 <pre><code>cp .env.example .env</code></pre>
       <p>
         В файле задайте режим и пароль базы. Пароль в двух строках должен
@@ -130,7 +129,7 @@ DATABASE_URL=postgresql+psycopg://patches_please:&lt;надёжный парол
       </p>
     </li>
     <li>
-      <p>Соберите и запустите стек:</p>
+      <h3>Соберите и запустите стек</h3>
 <pre><code>docker compose up -d --build</code></pre>
       <p>
         Ожидаемо: четыре контейнера в состоянии <code>Up</code>, у всех пометка
@@ -139,9 +138,7 @@ DATABASE_URL=postgresql+psycopg://patches_please:&lt;надёжный парол
       </p>
     </li>
     <li>
-      <p>
-        Поставьте <code>uv</code>, примените миграции и создайте первый аккаунт:
-      </p>
+      <h3>Поставьте <code>uv</code> и создайте аккаунт</h3>
 <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
       <p>В новом терминале:</p>
 <pre><code>uv sync
@@ -157,7 +154,7 @@ uv run python scripts/seed_demo.py</code></pre>
       </p>
     </li>
     <li>
-      <p>Поставьте nginx и certbot:</p>
+      <h3>Поставьте nginx и certbot</h3>
 <pre><code>sudo apt-get update
 sudo apt-get install -y nginx certbot python3-certbot-nginx</code></pre>
       <p>
@@ -185,7 +182,7 @@ sudo systemctl reload nginx</code></pre>
 <pre><code>sudo certbot --nginx -d &lt;домен&gt;</code></pre>
     </li>
     <li>
-      <p>Проверьте стенд снаружи:</p>
+      <h3>Проверьте стенд снаружи</h3>
 <pre><code>curl https://&lt;домен&gt;/health</code></pre>
       <p>
         Ожидаемо: HTTP 200 и тело <code>{"status":"ok"}</code>. Вход:
@@ -202,9 +199,9 @@ sudo systemctl reload nginx</code></pre>
       </div>
     </li>
     <li>
+      <h3>Настройте резервные копии</h3>
       <p>
-        Настройте резервные копии. Дамп базы берётся командой из runbook,
-        пользователь и база совпадают с <code>POSTGRES_USER</code> и
+        Пользователь и база в командах совпадают с <code>POSTGRES_USER</code> и
         <code>POSTGRES_DB</code>:
       </p>
 <pre><code>docker compose exec -T postgres pg_dump -U patches_please patches_please &gt; backup.sql</code></pre>
@@ -217,7 +214,7 @@ sudo systemctl reload nginx</code></pre>
 <pre><code>docker compose exec -T postgres psql -U patches_please patches_please &lt; backup.sql</code></pre>
     </li>
     <li>
-      <p>Обновление после выхода новой версии:</p>
+      <h3>Обновляйте стенд</h3>
 <pre><code>git pull
 docker compose up -d --build
 uv run alembic upgrade head</code></pre>

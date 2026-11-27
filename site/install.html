@@ -155,7 +155,7 @@
 
   <ol class="steps">
     <li>
-      <p>Получите репозиторий.</p>
+      <h3>Получите репозиторий</h3>
 <pre><code>git clone https://github.com/arslan-ahmetjanov/patches-please.git
 cd patches-please</code></pre>
       <p>
@@ -165,7 +165,8 @@ cd patches-please</code></pre>
       </p>
     </li>
     <li>
-      <p>Установите <code>uv</code>. Windows, PowerShell:</p>
+      <h3>Установите <code>uv</code></h3>
+      <p>Windows, PowerShell:</p>
 <pre><code>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</code></pre>
       <p>macOS и Linux:</p>
 <pre><code>curl -LsSf https://astral.sh/uv/install.sh | sh</code></pre>
@@ -181,9 +182,9 @@ uv sync</code></pre>
       </p>
     </li>
     <li>
+      <h3>Запустите Docker Desktop</h3>
       <p>
-        Запустите Docker Desktop и дождитесь состояния «Engine running». Затем
-        проверьте движок:
+        Дождитесь состояния «Engine running», затем проверьте движок:
       </p>
 <pre><code>docker version
 docker compose version</code></pre>
@@ -203,7 +204,7 @@ docker compose version</code></pre>
       </p>
     </li>
     <li>
-      <p>Скопируйте пример окружения:</p>
+      <h3>Скопируйте пример окружения</h3>
 <pre><code>cp .env.example .env</code></pre>
       <p>PowerShell:</p>
 <pre><code>Copy-Item .env.example .env</code></pre>
@@ -229,7 +230,7 @@ docker compose version</code></pre>
       </div>
     </li>
     <li>
-      <p>Соберите и запустите стек:</p>
+      <h3>Соберите и запустите стек</h3>
 <pre><code>docker compose up -d --build</code></pre>
       <p>
         Ожидаемо: код возврата <code>0</code>, в конце вывода строки
@@ -239,7 +240,7 @@ docker compose version</code></pre>
       </p>
     </li>
     <li>
-      <p>Проверьте контейнеры и API:</p>
+      <h3>Проверьте контейнеры и API</h3>
 <pre><code>docker compose ps
 curl http://localhost:8000/health</code></pre>
       <p>PowerShell вместо <code>curl</code>:</p>
@@ -254,7 +255,7 @@ curl http://localhost:8000/health</code></pre>
       </p>
     </li>
     <li>
-      <p>Примените миграции:</p>
+      <h3>Примените миграции</h3>
 <pre><code>uv run alembic upgrade head</code></pre>
       <p>
         Ожидаемо: семь строк <code>Running upgrade …</code>, последняя с номером
@@ -273,9 +274,10 @@ curl http://localhost:8000/health</code></pre>
       </div>
     </li>
     <li>
+      <h3>Создайте пользователя, проект и токен</h3>
       <p>
-        Создайте пользователя, проект и токен. Регистрации в интерфейсе нет,
-        учётную запись создаёт <code>scripts/seed_demo.py</code>:
+        Регистрации в интерфейсе нет: учётную запись создаёт
+        <code>scripts/seed_demo.py</code>.
       </p>
 <pre><code>export DEMO_PASSWORD='&lt;пароль не короче 8 символов&gt;'
 export DEMO_REPO_URL='https://github.com/arslan-ahmetjanov/patches-please-demo.git'
