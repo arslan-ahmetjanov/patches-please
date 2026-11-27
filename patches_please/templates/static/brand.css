@@ -11,9 +11,16 @@
 
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&family=Pixelify+Sans:wght@400;600;700&display=swap");
 
+/* Ширина блока считается вместе с отступами и рамкой: иначе поле с рамкой
+   вылезает за колонку на узком экране. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   color-scheme: light;
-
   /* Палитра: бумага, чернила, линии, два цвета штампа. */
   --paper: #faf7f0;
   --ink: #14120f;
@@ -241,6 +248,7 @@ input,
 select,
 textarea {
   box-sizing: border-box;
+  max-width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--muted);
   border-radius: var(--radius);
@@ -493,6 +501,7 @@ form.create input {
 
 .settings-form {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.25rem;
   max-width: 32rem;
   margin-bottom: 1.5rem;
@@ -507,6 +516,7 @@ form.create input {
 fieldset {
   display: grid;
   gap: 0.25rem;
+  min-width: 0;
   margin: 0 0 0.5rem;
   padding: 0.5rem 0.75rem 0.25rem;
   border: 1px solid var(--line);
@@ -592,8 +602,18 @@ body.page-login button {
   }
 
   dl {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.15rem;
+  }
+
+  dt,
+  dd {
+    min-width: 0;
+  }
+
+  /* Длинный SHA коммита не раздвигает колонку: переносим где угодно. */
+  dd code {
+    overflow-wrap: anywhere;
   }
 
   dd {
